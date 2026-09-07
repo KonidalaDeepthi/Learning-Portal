@@ -156,7 +156,14 @@ def quiz_start(quiz_id):
     if not enrolled:
         return _course_access_denied(quiz.course_id)
 
-    # Already attempted?
+    # Prevent duplicate attempts after a valid submission.
+    submitted_attempt = QuizAttempt.query.filter_by(
+        user_id=current_user.id,
+        quiz_id=quiz_id
+    ).filter(QuizAttempt.submitted_at.isnot(None)).first()
+    if submitted_attempt:
+        return redirect(url_for('student.quiz_result', quiz_id=quiz_id))
+
     return render_template('student/quiz_start.html', quiz=quiz)
 
 
@@ -178,9 +185,11 @@ def quiz_take(quiz_id):
     if not enrolled:
         return _course_access_denied(quiz.course_id)
 
-    # Create or resume attempt
+    # Create or resume a single in-progress attempt; submitted attempts stay locked.
     attempt = QuizAttempt.query.filter_by(
-        user_id=current_user.id, quiz_id=quiz_id, submitted_at=None).first()
+        user_id=current_user.id,
+        quiz_id=quiz_id
+    ).order_by(QuizAttempt.submitted_at.desc().nullslast(), QuizAttempt.id.desc()).first()
 
     if attempt and attempt.submitted_at:
         flash('You have already submitted this quiz.', 'info')

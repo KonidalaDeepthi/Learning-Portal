@@ -21,6 +21,7 @@ from datetime import datetime
 
 from app.extensions import db
 from app.models.user import User
+from app.course_access import fulfill_pending_assignments, normalize_email
 
 # Create the Blueprint
 # 'auth' is the name used in url_for('auth.login') etc.
@@ -38,7 +39,7 @@ def login():
         return _redirect_after_login(current_user)
 
     if request.method == 'POST':
-        email = request.form.get('email', '').strip().lower()
+        email = normalize_email(request.form.get('email', ''))
         password = request.form.get('password', '')
         remember = request.form.get('remember', False)
 
@@ -93,7 +94,7 @@ def register():
 
     if request.method == 'POST':
         name = request.form.get('name', '').strip()
-        email = request.form.get('email', '').strip().lower()
+        email = normalize_email(request.form.get('email', ''))
         password = request.form.get('password', '')
         confirm_password = request.form.get('confirm_password', '')
 
@@ -103,7 +104,7 @@ def register():
         if not name or len(name) < 2:
             errors.append('Please enter your full name (at least 2 characters).')
 
-        if not email or '@' not in email:
+        if not email or '@' not in email or ' ' in email:
             errors.append('Please enter a valid email address.')
 
         if not password or len(password) < 8:
@@ -137,6 +138,8 @@ def register():
         )
 
         db.session.add(new_user)
+        db.session.flush()
+        fulfill_pending_assignments(new_user)
         db.session.commit()
 
         flash('Account created successfully! Please log in.', 'success')

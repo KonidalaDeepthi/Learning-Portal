@@ -116,29 +116,31 @@ def course_access():
 @login_required
 @mentor_admin_required
 def assign_student_to_course():
-    from app.models.course import Course, CourseEnrollment
-    from app.models.user import User
+    from app.models.course import Course
+    from app.course_access import assign_course_by_email, normalize_email
 
-    email = request.form.get('email', '').strip().lower()
+    email = normalize_email(request.form.get('email', ''))
     course_id = request.form.get('course_id', type=int)
-    student = User.query.filter_by(email=email, role='student').first()
     course = Course.query.filter_by(id=course_id, status='active').first() if course_id else None
 
-    if not student:
-        flash(f'No student found with email "{email}". Ask them to register first.', 'warning')
+    if not email or ' ' in email or '@' not in email:
+        flash('Please enter a valid student email.', 'danger')
     elif not course:
         flash('Please select an active course.', 'danger')
     else:
-        enrollment = CourseEnrollment.query.filter_by(
-            user_id=student.id, course_id=course.id).first()
-        if enrollment:
-            enrollment.is_active = True
+        result, student = assign_course_by_email(email, course, current_user.id)
+        if result == 'not_student':
+            flash('This email belongs to a non-student account.', 'warning')
+        elif result == 'enrolled':
             db.session.commit()
             flash(f'{email} now has active access to {course.name}.', 'success')
         else:
-            db.session.add(CourseEnrollment(user_id=student.id, course_id=course.id))
             db.session.commit()
-            flash(f'{email} enrolled in {course.name}.', 'success')
+            flash(
+                'Course access assigned to this email. When the student registers '
+                'with this email, the course will appear automatically.',
+                'success'
+            )
 
     return redirect(url_for('mentor.students', search=email))
 
@@ -230,29 +232,25 @@ def course_detail(course_id):
 @login_required
 @mentor_admin_required
 def add_student_to_course(course_id):
-    from app.models.course import Course, CourseEnrollment
-    from app.models.user import User
+    from app.models.course import Course
+    from app.course_access import assign_course_by_email, normalize_email
     course = Course.query.get_or_404(course_id)
-    email  = request.form.get('email', '').strip().lower()
-    if not email:
-        flash('Please enter a student email.', 'danger')
+    email = normalize_email(request.form.get('email', ''))
+    if not email or '@' not in email or ' ' in email:
+        flash('Please enter a valid student email.', 'danger')
         return redirect(url_for('mentor.course_detail', course_id=course_id))
-    student = User.query.filter_by(email=email, role='student').first()
-    if not student:
-        flash(f'No student found with email "{email}". Ask them to register first.', 'warning')
-        return redirect(url_for('mentor.course_detail', course_id=course_id))
-    existing = CourseEnrollment.query.filter_by(user_id=student.id, course_id=course_id).first()
-    if existing:
-        if existing.is_active:
-            flash(f'{email} is already enrolled.', 'info')
-        else:
-            existing.is_active = True
-            db.session.commit()
-            flash(f'{email} re-enrolled successfully!', 'success')
-        return redirect(url_for('mentor.course_detail', course_id=course_id))
-    db.session.add(CourseEnrollment(user_id=student.id, course_id=course_id))
+    result, student = assign_course_by_email(email, course, current_user.id)
+    if result == 'not_student':
+        flash('This email belongs to a non-student account.', 'warning')
+    elif result == 'enrolled':
+        flash(f'{email} now has active access to {course.name}.', 'success')
+    else:
+        flash(
+            'Course access assigned to this email. When the student registers '
+            'with this email, the course will appear automatically.',
+            'success'
+        )
     db.session.commit()
-    flash(f'{student.name} enrolled in {course.name}!', 'success')
     return redirect(url_for('mentor.course_detail', course_id=course_id))
 
 

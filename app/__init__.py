@@ -58,7 +58,9 @@ def create_app(config_name='default'):
     app.register_blueprint(mentor_bp)
 
     # Register all models so db.create_all() finds them
-    from app.models import user, course, quiz, video, update, chat, announcement  # noqa: F401
+    from app.models import (  # noqa: F401
+        user, course, pending_assignment, quiz, video, update, chat, announcement
+    )
 
     # ----------------------------------------------------------
     # Root route — redirect to login

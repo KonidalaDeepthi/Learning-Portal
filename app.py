@@ -12,11 +12,13 @@ HOW TO RUN:
     flask run
 """
 
+import os
+
 from app import create_app
 from app.extensions import db
 
-# Create the Flask application in development mode
-app = create_app('development')
+# Use production configuration when the hosting environment requests it.
+app = create_app(os.environ.get('FLASK_CONFIG', 'development'))
 
 
 # ============================================================
@@ -112,4 +114,4 @@ def seed_admin():
     print("========================================\n")
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=app.config.get('DEBUG', False))

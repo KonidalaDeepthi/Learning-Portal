@@ -22,7 +22,9 @@ with app.app_context():
 
     course  = Course.query.first()
     mentor  = User.query.filter_by(role='mentor_admin').first()
-    student = User.query.filter_by(role='student').first()
+    student = User.query.filter_by(email='teststudent@test.com').first()
+    if student is None:
+        student = User.query.filter_by(role='student').first()
 
     student_email = student.email
     student_id    = student.id
@@ -30,10 +32,15 @@ with app.app_context():
     course_id     = course.id
     course_name   = course.name
 
-    # Enroll student
-    if not CourseEnrollment.query.filter_by(user_id=student_id, course_id=course_id).first():
+    # Enroll or reactivate the student for this isolated E2E fixture.
+    enrollment = CourseEnrollment.query.filter_by(
+        user_id=student_id, course_id=course_id
+    ).first()
+    if enrollment:
+        enrollment.is_active = True
+    else:
         db.session.add(CourseEnrollment(user_id=student_id, course_id=course_id))
-        db.session.commit()
+    db.session.commit()
     print(f"✓ Student enrolled in: {course_name}")
 
     # Remove old test quiz

@@ -90,6 +90,13 @@ class User(UserMixin, db.Model):
     notifications = db.relationship('Notification', back_populates='user',
                                     lazy='dynamic', cascade='all, delete-orphan')
 
+    pending_course_assignments = db.relationship(
+        'PendingCourseAssignment',
+        foreign_keys='PendingCourseAssignment.assigned_by',
+        back_populates='assigner',
+        lazy='dynamic'
+    )
+
     # ----------------------------------------------------------
     # Helper Methods
     # ----------------------------------------------------------

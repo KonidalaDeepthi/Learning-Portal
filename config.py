@@ -34,7 +34,10 @@ class Config:
     # sqlite:///app.db means a file called app.db in the
     # instance/ folder (Flask creates this folder automatically).
     # ----------------------------------------------------------
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///app.db'
+    _database_url = os.environ.get('DATABASE_URL')
+    if _database_url and _database_url.startswith('postgres://'):
+        _database_url = _database_url.replace('postgres://', 'postgresql://', 1)
+    SQLALCHEMY_DATABASE_URI = _database_url or 'sqlite:///app.db'
 
     # This turns off a SQLAlchemy feature we don't need.
     # Saves memory and removes an annoying warning.

@@ -353,6 +353,19 @@ a:hover { color: var(--primary-dark); }
 
 .form-control::placeholder { color: var(--text-muted); }
 
+.form-control,
+.form-control:-webkit-autofill,
+.form-control:-webkit-autofill:hover,
+.form-control:-webkit-autofill:focus,
+.form-control:-webkit-autofill:active {
+  color: var(--text-primary) !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  background-color: var(--bg-surface) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-surface) inset !important;
+  caret-color: var(--primary);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Keep typed chat text visible against both theme backgrounds. */
 .chat-input {
   color: var(--text-primary) !important;
