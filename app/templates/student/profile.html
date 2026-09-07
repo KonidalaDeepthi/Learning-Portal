@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="page-wrapper" style="max-width:700px;">
+  <div class="page-header">
+    <h1 class="page-title">My Profile</h1>
+    <p class="page-subtitle">Manage your personal information</p>
+  </div>
+  <div class="card">
+    <div class="card-body" style="padding:2rem;">
+      <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem;padding-bottom:2rem;border-bottom:1px solid var(--border);">
+        <div style="width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--accent));display:flex;align-items:center;justify-content:center;color:white;font-size:2rem;font-weight:800;flex-shrink:0;">
+          {{ current_user.name[0].upper() }}
+        </div>
+        <div>
+          <div style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">{{ current_user.name }}</div>
+          <div style="color:var(--text-muted);font-size:0.9rem;">{{ current_user.email }}</div>
+          <div class="badge badge-primary" style="margin-top:0.4rem;">Student</div>
+        </div>
+      </div>
+      <div style="display:grid;gap:1rem;">
+        <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;font-weight:500;">Full Name</span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ current_user.name }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;font-weight:500;">Email Address</span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ current_user.email }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;font-weight:500;">Member Since</span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ current_user.created_at.strftime('%B %d, %Y') }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+          <span style="color:var(--text-muted);font-size:0.875rem;font-weight:500;">Enrolled Courses</span>
+          <span style="color:var(--text-primary);font-weight:600;">{{ current_user.get_enrolled_courses()|length }}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.75rem 0;">
+          <span style="color:var(--text-muted);font-size:0.875rem;font-weight:500;">Theme</span>
+          <button class="btn btn-outline btn-sm" data-theme-toggle
+                  title="Switch to dark theme" aria-label="Switch to dark theme">
+            <i class="bi bi-moon-stars" data-theme-icon></i>
+            <span data-theme-label class="visually-hidden">Switch to dark theme</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Quizzes{% endblock %}
+{% block page_title %}Quizzes{% endblock %}
+{% block page_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">Quizzes</h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Create and manage quizzes for your courses</p>
+  </div>
+  <a href="/mentor/quizzes/create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Quiz</a>
+</div>
+
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    {% if quizzes %}
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Quiz</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Course</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Questions</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Attempts</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Status</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for quiz in quizzes %}
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <td style="padding:1rem 1.5rem;">
+              <div style="font-weight:600;color:var(--text-primary);">{{ quiz.title }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ quiz.total_marks }} marks {% if quiz.time_limit_minutes %}· {{ quiz.time_limit_minutes }} min{% endif %}</div>
+            </td>
+            <td style="padding:1rem 1.5rem;font-size:0.875rem;color:var(--text-secondary);">{{ quiz.course.name }}</td>
+            <td style="padding:1rem 1.5rem;font-weight:600;color:var(--text-primary);">{{ quiz.get_question_count() }}</td>
+            <td style="padding:1rem 1.5rem;font-weight:600;color:var(--text-primary);">{{ quiz.attempts.count() }}</td>
+            <td style="padding:1rem 1.5rem;">
+              <span class="badge badge-{{ 'success' if quiz.status == 'published' else 'warning' }}">{{ quiz.status }}</span>
+            </td>
+            <td style="padding:1rem 1.5rem;">
+              <div style="display:flex;gap:0.5rem;">
+                <a href="/mentor/quizzes/{{ quiz.id }}/results" class="btn btn-outline btn-sm"><i class="bi bi-bar-chart"></i> Results</a>
+                <a href="/mentor/quizzes/{{ quiz.id }}/edit" class="btn btn-outline btn-sm"><i class="bi bi-pencil"></i></a>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:3rem;">
+      <div class="empty-state-icon">📝</div>
+      <h3>No quizzes yet</h3>
+      <p>Create your first quiz to start testing your students.</p>
+      <a href="/mentor/quizzes/create" class="btn btn-primary" style="margin-top:1rem;"><i class="bi bi-plus-circle"></i> Create First Quiz</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

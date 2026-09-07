@@ -1,0 +1,59 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Quiz Results{% endblock %}
+{% block page_title %}Quiz Results{% endblock %}
+{% block page_content %}
+<div style="display:flex;justify-content:space-between;align-items:flex-end;gap:1rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+  <div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">Quiz Results</h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Review submitted attempts across all courses.</p>
+  </div>
+</div>
+
+<form method="GET" action="{{ url_for('mentor.results') }}" style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+  <select name="student_id" class="form-control" style="max-width:260px;">
+    <option value="">All students</option>
+    {% for student in students %}
+    <option value="{{ student.id }}" {% if student_id == student.id %}selected{% endif %}>{{ student.name }} · {{ student.email }}</option>
+    {% endfor %}
+  </select>
+  <select name="quiz_id" class="form-control" style="max-width:300px;">
+    <option value="">All quizzes</option>
+    {% for quiz in quizzes %}
+    <option value="{{ quiz.id }}" {% if quiz_id == quiz.id %}selected{% endif %}>{{ quiz.course.name }} · {{ quiz.title }}</option>
+    {% endfor %}
+  </select>
+  <button class="btn btn-primary"><i class="bi bi-funnel"></i> Filter</button>
+  {% if student_id or quiz_id %}<a href="{{ url_for('mentor.results') }}" class="btn btn-outline">Clear</a>{% endif %}
+</form>
+
+<div class="card">
+  <div class="card-body" style="padding:0;overflow-x:auto;">
+    {% if attempts %}
+    <table style="width:100%;border-collapse:collapse;min-width:760px;">
+      <thead><tr style="border-bottom:1px solid var(--border);">
+        <th style="padding:0.9rem 1.25rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">Student</th>
+        <th style="padding:0.9rem 1rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">Course</th>
+        <th style="padding:0.9rem 1rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">Quiz</th>
+        <th style="padding:0.9rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">Score</th>
+        <th style="padding:0.9rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">%</th>
+        <th style="padding:0.9rem 1.25rem;text-align:right;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);">Submitted</th>
+      </tr></thead>
+      <tbody>
+      {% for attempt in attempts %}
+      <tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:0.85rem 1.25rem;"><div style="font-weight:600;color:var(--text-primary);">{{ attempt.user.name }}</div><div style="font-size:0.75rem;color:var(--text-muted);">{{ attempt.user.email }}</div></td>
+        <td style="padding:0.85rem 1rem;color:var(--text-secondary);">{{ attempt.quiz.course.name }}</td>
+        <td style="padding:0.85rem 1rem;color:var(--text-secondary);">{{ attempt.quiz.title }}</td>
+        <td style="padding:0.85rem 1rem;text-align:center;font-weight:700;">{{ attempt.score }}/{{ attempt.total_marks }}</td>
+        <td style="padding:0.85rem 1rem;text-align:center;font-weight:700;color:{% if attempt.percentage >= 50 %}var(--success){% else %}var(--danger){% endif %};">{{ '%.1f'|format(attempt.percentage) }}%</td>
+        <td style="padding:0.85rem 1.25rem;text-align:right;font-size:0.78rem;color:var(--text-muted);">{{ attempt.submitted_at.strftime('%b %d, %Y %I:%M %p') }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div class="empty-state" style="padding:3rem;"><div class="empty-state-icon">📊</div><h3>No submitted attempts</h3><p>Results will appear here after students complete quizzes.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

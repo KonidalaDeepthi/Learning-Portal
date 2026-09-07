@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}My Courses{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div class="page-header">
+    <h1 class="page-title"><i class="bi bi-book" style="color:var(--primary)"></i> My Courses</h1>
+    <p class="page-subtitle">Your enrolled learning paths</p>
+  </div>
+
+  {% macro course_card(course, color_start, color_end) %}
+    <a href="{{ url_for('student.course_detail', course_id=course.id) }}" class="course-card">
+      <div class="course-card-banner" style="height:6px; background:linear-gradient(90deg,
+        {{ color_start }}, {{ color_end }});"></div>
+      <div class="course-card-body">
+        <div class="course-badge"><i class="bi bi-mortarboard"></i> Active Course</div>
+        <h3 style="font-size:1.2rem; margin-bottom:0.5rem;">{{ course.name }}</h3>
+        <div style="display:flex; justify-content:space-between; font-size:0.78rem; color:var(--text-muted); margin-bottom:0.75rem;">
+          <span><i class="bi bi-play-circle"></i> {{ course.get_published_videos()|length }} videos</span>
+          <span><i class="bi bi-patch-question"></i> {{ course.get_published_quizzes()|length }} quizzes</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" style="width: 0%"></div>
+        </div>
+        <div style="display:flex; justify-content:space-between; margin-top:0.75rem;">
+          <span style="font-size:0.75rem; color:var(--text-muted);">Progress</span>
+          <span class="btn btn-primary btn-sm" style="pointer-events:none;">Open Course →</span>
+        </div>
+      </div>
+    </a>
+  {% endmacro %}
+
+  {% set python_courses = courses|selectattr('name', 'equalto', 'Python Full Stack')|list %}
+  {% set gen_ai_courses = courses|selectattr('name', 'equalto', 'Generative AI')|list %}
+  {% set other_courses = courses|rejectattr('name', 'equalto', 'Python Full Stack')|rejectattr('name', 'equalto', 'Generative AI')|list %}
+
+  {% if courses %}
+  {% if python_courses %}
+  <section class="course-section" aria-labelledby="python-full-stack-heading">
+    <h2 id="python-full-stack-heading" class="course-section-title">
+      <i class="bi bi-code-slash"></i> Python Full Stack
+    </h2>
+    <div class="grid-2">
+      {% for course in python_courses %}{{ course_card(course, '#6366f1', '#06b6d4') }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if gen_ai_courses %}
+  <section class="course-section" aria-labelledby="generative-ai-heading">
+    <h2 id="generative-ai-heading" class="course-section-title">
+      <i class="bi bi-stars"></i> Generative AI
+    </h2>
+    <div class="grid-2">
+      {% for course in gen_ai_courses %}{{ course_card(course, '#7c3aed', '#ec4899') }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  {% if other_courses %}
+  <section class="course-section" aria-labelledby="other-courses-heading">
+    <h2 id="other-courses-heading" class="course-section-title">
+      <i class="bi bi-collection"></i> Other Courses
+    </h2>
+    <div class="grid-2">
+      {% for course in other_courses %}{{ course_card(course, '#0ea5e9', '#14b8a6') }}{% endfor %}
+    </div>
+  </section>
+  {% endif %}
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="card-body empty-state" style="padding: 4rem 2rem;">
+      <div class="empty-state-icon">📚</div>
+      <h3>No courses assigned yet</h3>
+      <p>Your mentor will add you to courses using your email address.<br>
+         Make sure you registered with the correct email.</p>
+      <a href="{{ url_for('student.chat') }}" class="btn btn-primary" style="margin-top:1rem;">
+        <i class="bi bi-chat-dots"></i> Message Mentor
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

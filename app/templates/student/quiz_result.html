@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block content %}
+<div style="max-width:860px;margin:0 auto;padding:2rem 1rem;">
+
+  <!-- Score Card -->
+  <div class="card" style="margin-bottom:1.5rem;overflow:hidden;">
+    <div style="height:5px;background:
+      {% if attempt.percentage >= 80 %}linear-gradient(90deg,#22c55e,#16a34a)
+      {% elif attempt.percentage >= 50 %}linear-gradient(90deg,#f59e0b,#d97706)
+      {% else %}linear-gradient(90deg,#ef4444,#dc2626){% endif %};"></div>
+    <div class="card-body" style="padding:2.5rem;text-align:center;">
+
+      <!-- Circular score -->
+      <div style="position:relative;display:inline-flex;align-items:center;justify-content:center;margin-bottom:1.5rem;">
+        <svg width="140" height="140" viewBox="0 0 140 140">
+          <circle cx="70" cy="70" r="60" fill="none" stroke="var(--border)" stroke-width="10"/>
+          <circle cx="70" cy="70" r="60" fill="none"
+                  stroke="{% if attempt.percentage >= 80 %}#22c55e{% elif attempt.percentage >= 50 %}#f59e0b{% else %}#ef4444{% endif %}"
+                  stroke-width="10" stroke-linecap="round"
+                  stroke-dasharray="{{ (attempt.percentage / 100 * 376.99)|int }} 376.99"
+                  stroke-dashoffset="94.25"
+                  transform="rotate(-90 70 70)"/>
+        </svg>
+        <div style="position:absolute;text-align:center;">
+          <div style="font-size:1.8rem;font-weight:900;color:var(--text-primary);">{{ "%.0f"|format(attempt.percentage) }}%</div>
+          <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Score</div>
+        </div>
+      </div>
+
+      <!-- Pass / Fail -->
+      <div style="font-size:1.4rem;font-weight:800;margin-bottom:0.5rem;
+        {% if attempt.percentage >= 50 %}color:#16a34a;{% else %}color:#dc2626;{% endif %}">
+        {% if attempt.percentage >= 50 %}🎉 Passed!{% else %}💪 Keep Practicing!{% endif %}
+      </div>
+      <div style="font-size:1rem;color:var(--text-secondary);margin-bottom:1.5rem;">
+        You scored <strong style="color:var(--text-primary);">{{ attempt.score }} / {{ attempt.total_marks }}</strong> marks
+      </div>
+
+      <!-- Stats row -->
+      <div style="display:flex;justify-content:center;gap:2rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem;font-weight:800;color:#22c55e;">{{ attempt.correct_count }}</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;">Correct</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem;font-weight:800;color:#ef4444;">{{ attempt.wrong_count }}</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;">Wrong</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:1.3rem;font-weight:800;color:var(--text-muted);">{{ attempt.skipped_count }}</div>
+          <div style="font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;">Skipped</div>
+        </div>
+        {% if attempt.submitted_at and attempt.started_at %}
+        <div style="text-align:center;">
+          {% set duration = (attempt.submitted_at - attempt.started_at).seconds %}
+          <div style="font-size:1.3rem;font-weight:800;color:var(--text-primary);">
+            {{ "%02d"|format(duration // 60) }}:{{ "%02d"|format(duration % 60) }}
+          </div>
+          <div style="font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);letter-spacing:0.5px;">Time Taken</div>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Action buttons -->
+      <div style="display:flex;gap:0.75rem;justify-content:center;flex-wrap:wrap;">
+        <a href="{{ url_for('student.course_detail', course_id=quiz.course_id) }}" class="btn btn-primary">
+          <i class="bi bi-arrow-left"></i> Back to Course
+        </a>
+        <a href="{{ url_for('student.progress') }}" class="btn btn-outline">
+          <i class="bi bi-bar-chart"></i> View All Progress
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Answer Review -->
+  <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:0.75rem;">
+    Answer Review
+  </div>
+
+  {% for q in questions %}
+  {% set ans = answers_map.get(q.id) %}
+  <div class="card" style="margin-bottom:1rem;border-left:3px solid
+    {% if ans and ans.is_correct %}#22c55e{% elif ans and ans.selected_option %}#ef4444{% else %}var(--border){% endif %};">
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:1rem;margin-bottom:0.75rem;">
+        <div>
+          <div style="font-size:0.7rem;color:var(--text-muted);margin-bottom:0.25rem;">Q{{ loop.index }}</div>
+          <p style="font-weight:600;color:var(--text-primary);margin:0;line-height:1.5;">{{ q.question_text }}</p>
+        </div>
+        <span style="flex-shrink:0;font-size:0.75rem;padding:0.2rem 0.6rem;border-radius:20px;font-weight:600;
+          {% if ans and ans.is_correct %}background:rgba(34,197,94,0.15);color:#16a34a;
+          {% elif ans and ans.selected_option %}background:rgba(239,68,68,0.15);color:#dc2626;
+          {% else %}background:var(--bg-hover);color:var(--text-muted);{% endif %}">
+          {% if ans and ans.is_correct %}+{{ q.marks }}{% elif ans and ans.selected_option %}0{% else %}Skipped{% endif %}
+        </span>
+      </div>
+
+      <!-- Options -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.4rem;">
+        {% for letter, opt_text in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+        {% set is_correct = (letter == q.correct_option) %}
+        {% set is_selected = (ans and ans.selected_option == letter) %}
+        <div style="display:flex;align-items:center;gap:0.6rem;padding:0.5rem 0.75rem;border-radius:var(--radius-md);border:1.5px solid
+          {% if is_correct %}#22c55e{% elif is_selected and not is_correct %}#ef4444{% else %}var(--border){% endif %};
+          background:{% if is_correct %}rgba(34,197,94,0.08){% elif is_selected and not is_correct %}rgba(239,68,68,0.08){% else %}transparent{% endif %};">
+          <div style="width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;font-weight:700;
+            {% if is_correct %}background:#22c55e;color:white;
+            {% elif is_selected and not is_correct %}background:#ef4444;color:white;
+            {% else %}background:var(--bg-hover);color:var(--text-muted);{% endif %}">
+            {% if is_correct %}<i class="bi bi-check"></i>{% elif is_selected and not is_correct %}<i class="bi bi-x"></i>{% else %}{{ letter }}{% endif %}
+          </div>
+          <span style="font-size:0.82rem;color:{% if is_correct %}#16a34a{% elif is_selected and not is_correct %}#dc2626{% else %}var(--text-secondary){% endif %};">{{ opt_text }}</span>
+        </div>
+        {% endfor %}
+      </div>
+
+      {% if ans and not ans.is_correct and ans.selected_option %}
+      <div style="margin-top:0.75rem;padding:0.6rem 0.9rem;background:rgba(34,197,94,0.08);border-radius:var(--radius-md);border:1px solid rgba(34,197,94,0.2);font-size:0.8rem;color:#16a34a;">
+        <i class="bi bi-lightbulb"></i> Correct answer: <strong>{{ q.correct_option }}</strong>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+
+</div>
+{% endblock %}

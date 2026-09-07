@@ -1,0 +1,295 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}{{ student.name }} — Student Profile{% endblock %}
+{% block page_title %}Student Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pct-pill {
+    display: inline-block;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    font-weight: 700;
+    font-size: 0.8rem;
+  }
+  .pct-high   { background: rgba(34,197,94,0.12); color: var(--success); }
+  .pct-mid    { background: rgba(234,179,8,0.12);  color: var(--warning); }
+  .pct-low    { background: rgba(239,68,68,0.12);  color: var(--danger);  }
+
+  .stat-box {
+    flex: 1;
+    background: var(--bg-muted);
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    text-align: center;
+    border: 1px solid var(--border);
+  }
+  .stat-box .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+  .stat-box .stat-label {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.2rem;
+  }
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+<!-- Back -->
+<div style="margin-bottom:1.5rem;">
+  <a href="{{ url_for('mentor.students') }}"
+     style="color:var(--text-muted);font-size:0.875rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;">
+    <i class="bi bi-arrow-left"></i> Back to Students
+  </a>
+</div>
+
+<!-- 2-column layout: 40% left, 60% right -->
+<div style="display:grid;grid-template-columns:2fr 3fr;gap:1.5rem;align-items:start;">
+
+  <!-- ═══════════════════════════════
+       LEFT COLUMN
+  ═══════════════════════════════ -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Profile Card -->
+    <div class="card">
+      <div class="card-body" style="text-align:center;padding:2rem 1.5rem;">
+
+        <!-- Avatar -->
+        <div style="width:80px;height:80px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:2.1rem;font-weight:900;margin:0 auto 1rem;box-shadow:0 4px 16px rgba(0,0,0,0.2);">
+          {{ student.name[0].upper() }}
+        </div>
+
+        <!-- Name + email -->
+        <div style="font-size:1.25rem;font-weight:800;color:var(--text-primary);margin-bottom:0.15rem;">
+          {{ student.name }}
+        </div>
+        <div style="font-size:0.82rem;color:var(--text-muted);margin-bottom:0.85rem;">
+          <i class="bi bi-envelope" style="margin-right:0.3rem;"></i>{{ student.email }}
+        </div>
+
+        <!-- Role badge -->
+        <span class="badge" style="background:linear-gradient(135deg,var(--primary),var(--accent));color:white;text-transform:uppercase;letter-spacing:0.5px;font-size:0.7rem;padding:0.3rem 0.85rem;border-radius:999px;margin-bottom:0.75rem;display:inline-block;">
+          <i class="bi bi-person-badge"></i> {{ student.role | default('Student') }}
+        </span>
+
+      </div>
+
+      <!-- Info rows -->
+      <div style="border-top:1px solid var(--border);">
+
+        <div style="padding:0.7rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">
+            <i class="bi bi-calendar-plus"></i> Joined
+          </span>
+          <span style="font-size:0.8rem;font-weight:600;color:var(--text-primary);">
+            {{ student.created_at.strftime('%b %d, %Y') if student.created_at else '—' }}
+          </span>
+        </div>
+
+        <div style="padding:0.7rem 1.25rem;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">
+            <i class="bi bi-clock-history"></i> Last Login
+          </span>
+          <span style="font-size:0.8rem;font-weight:600;color:var(--text-primary);">
+            {% if student.last_login %}
+              {{ student.last_login.strftime('%b %d, %Y') }}
+            {% else %}
+              Never
+            {% endif %}
+          </span>
+        </div>
+
+        <div style="padding:0.7rem 1.25rem;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:0.8rem;color:var(--text-muted);display:flex;align-items:center;gap:0.4rem;">
+            <i class="bi bi-activity"></i> Status
+          </span>
+          <span class="badge badge-{{ 'success' if student.is_active else 'danger' }}">
+            {{ 'Active' if student.is_active else 'Inactive' }}
+          </span>
+        </div>
+
+      </div>
+
+      <!-- Toggle active/inactive button -->
+      <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);">
+        <form method="POST" action="/mentor/students/{{ student.id }}/toggle-active">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+          <button type="submit"
+                  class="btn {% if student.is_active %}btn-outline{% else %}btn-primary{% endif %}"
+                  style="width:100%;font-size:0.85rem;"
+                  onclick="return confirm('Are you sure you want to {{ 'deactivate' if student.is_active else 'activate' }} this student?');">
+            {% if student.is_active %}
+              <i class="bi bi-person-dash"></i> Deactivate Account
+            {% else %}
+              <i class="bi bi-person-check"></i> Activate Account
+            {% endif %}
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Enrolled Courses Card -->
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;gap:0.5rem;">
+        <i class="bi bi-book" style="color:var(--primary);"></i>
+        <span>Enrolled Courses</span>
+        <span class="badge" style="margin-left:auto;background:var(--bg-muted);color:var(--text-muted);border:1px solid var(--border);">
+          {{ enrolled_courses | length }}
+        </span>
+      </div>
+      <div class="card-body" style="padding:0.75rem 1rem;">
+        {% if enrolled_courses %}
+          {% for course in enrolled_courses %}
+          <div style="display:flex;align-items:center;gap:0.7rem;padding:0.6rem 0;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+            <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.75rem;flex-shrink:0;">
+              {{ loop.index }}
+            </div>
+            <div>
+              <div style="font-size:0.85rem;font-weight:600;color:var(--text-primary);">{{ course.name }}</div>
+              {% if course.description %}
+              <div style="font-size:0.72rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;">
+                {{ course.description }}
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="text-align:center;padding:1.5rem 0;color:var(--text-muted);font-size:0.85rem;">
+            <i class="bi bi-book" style="font-size:1.5rem;display:block;margin-bottom:0.5rem;opacity:0.4;"></i>
+            Not enrolled in any course yet.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+  <!-- end left col -->
+
+  <!-- ═══════════════════════════════
+       RIGHT COLUMN — Quiz Performance
+  ═══════════════════════════════ -->
+  <div class="card">
+    <div class="card-header" style="display:flex;align-items:center;gap:0.5rem;">
+      <i class="bi bi-bar-chart-line" style="color:var(--warning);"></i>
+      <span>Quiz Performance</span>
+      <span class="badge" style="margin-left:auto;background:var(--bg-muted);color:var(--text-muted);border:1px solid var(--border);">
+        {{ attempts | length }} attempt{{ 's' if attempts | length != 1 else '' }}
+      </span>
+    </div>
+
+    <div class="card-body" style="padding:1.25rem;">
+
+      {% if attempts %}
+
+        <!-- Summary stats row -->
+        {% set total = attempts | length %}
+        {% set avg_pct = (attempts | sum(attribute='percentage') / total) | round(1) if total > 0 else 0 %}
+        {% set best_pct = attempts | max(attribute='percentage') %}
+
+        <div style="display:flex;gap:0.75rem;margin-bottom:1.5rem;">
+          <div class="stat-box">
+            <div class="stat-value">{{ total }}</div>
+            <div class="stat-label">Total Attempts</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" style="color:{% if avg_pct >= 70 %}var(--success){% elif avg_pct >= 50 %}var(--warning){% else %}var(--danger){% endif %};">
+              {{ avg_pct }}%
+            </div>
+            <div class="stat-label">Avg. Score</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value" style="color:var(--success);">
+              {{ best_pct.percentage | round(1) }}%
+            </div>
+            <div class="stat-label">Best Score</div>
+          </div>
+        </div>
+
+        <!-- Attempts table -->
+        <div style="overflow-x:auto;border-radius:var(--radius-md);border:1px solid var(--border);">
+          <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+            <thead>
+              <tr style="background:var(--bg-muted);">
+                <th style="padding:0.7rem 1rem;text-align:left;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);">
+                  Quiz
+                </th>
+                <th style="padding:0.7rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);">
+                  Score
+                </th>
+                <th style="padding:0.7rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);">
+                  Percentage
+                </th>
+                <th style="padding:0.7rem 1rem;text-align:right;font-size:0.72rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);">
+                  Submitted
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for attempt in attempts %}
+              <tr style="{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}transition:background 0.15s;"
+                  onmouseover="this.style.background='var(--bg-muted)'"
+                  onmouseout="this.style.background='transparent'">
+
+                <!-- Quiz name -->
+                <td style="padding:0.8rem 1rem;">
+                  <div style="font-weight:600;color:var(--text-primary);">{{ attempt.quiz.title }}</div>
+                  <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.1rem;">
+                    <i class="bi bi-check2" style="color:var(--success);"></i> {{ attempt.correct_count }} correct
+                    &nbsp;·&nbsp;
+                    <i class="bi bi-x" style="color:var(--danger);"></i> {{ attempt.wrong_count }} wrong
+                  </div>
+                </td>
+
+                <!-- Score -->
+                <td style="padding:0.8rem 1rem;text-align:center;">
+                  <span style="font-weight:700;color:var(--text-primary);">{{ attempt.score }}</span>
+                  <span style="color:var(--text-muted);">/{{ attempt.total_marks }}</span>
+                </td>
+
+                <!-- Percentage pill -->
+                <td style="padding:0.8rem 1rem;text-align:center;">
+                  <span class="pct-pill {% if attempt.percentage >= 70 %}pct-high{% elif attempt.percentage >= 50 %}pct-mid{% else %}pct-low{% endif %}">
+                    {{ attempt.percentage | round(0) | int }}%
+                  </span>
+                </td>
+
+                <!-- Date -->
+                <td style="padding:0.8rem 1rem;text-align:right;color:var(--text-muted);font-size:0.8rem;">
+                  {% if attempt.submitted_at %}
+                    {{ attempt.submitted_at.strftime('%b %d, %Y') }}
+                  {% else %}
+                    <span style="color:var(--warning);">In progress</span>
+                  {% endif %}
+                </td>
+
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+
+      {% else %}
+        <!-- Empty state -->
+        <div style="text-align:center;padding:3rem 2rem;">
+          <div style="font-size:3.5rem;margin-bottom:1rem;">📝</div>
+          <div style="font-weight:700;font-size:1.05rem;color:var(--text-primary);margin-bottom:0.4rem;">No quizzes taken yet</div>
+          <div style="color:var(--text-muted);font-size:0.875rem;">
+            {{ student.name.split()[0] }} hasn't attempted any quizzes yet. Quiz results will appear here once they start.
+          </div>
+        </div>
+      {% endif %}
+
+    </div>
+  </div>
+  <!-- end right col -->
+
+</div>
+{% endblock %}

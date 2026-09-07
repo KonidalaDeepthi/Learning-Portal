@@ -1,0 +1,139 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block page_title %}{{ course.name }}{% endblock %}
+
+{% block page_content %}
+<div style="margin-bottom:1rem;">
+  <a href="{{ url_for('mentor.courses') }}" style="color:var(--text-muted);font-size:0.875rem;text-decoration:none;">
+    <i class="bi bi-arrow-left"></i> Back to Courses
+  </a>
+</div>
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">{{ course.name }}</h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">{{ course.description }}</p>
+  </div>
+  <span class="badge badge-{{ 'success' if course.status == 'active' else 'danger' }}" style="font-size:0.8rem;padding:0.4rem 0.9rem;">
+    {{ course.status.upper() }}
+  </span>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;">
+
+  <!-- Student Enrollment -->
+  <div class="card">
+    <div class="card-header" style="display:flex;align-items:center;justify-content:space-between;">
+      <span><i class="bi bi-people" style="color:var(--primary)"></i> Students ({{ course.get_student_count() }})</span>
+    </div>
+
+    <!-- Add Student Form -->
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg-muted);">
+      <form method="POST" action="{{ url_for('mentor.add_student_to_course', course_id=course.id) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:0.4rem;display:block;">
+          ADD STUDENT BY EMAIL
+        </label>
+        <div style="display:flex;gap:0.5rem;">
+          <input type="email" name="email" class="form-control" placeholder="student@gmail.com" required style="flex:1;font-size:0.85rem;padding:0.5rem 0.75rem;">
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-plus"></i> Add</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Students List -->
+    <div class="card-body" style="padding:0;">
+      {% if enrollments %}
+      {% for enrollment in enrollments %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:0.9rem 1.5rem;border-bottom:1px solid var(--border);">
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.8rem;flex-shrink:0;">
+            {{ enrollment.user.name[0].upper() }}
+          </div>
+          <div>
+            <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary);">{{ enrollment.user.name }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">{{ enrollment.user.email }}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <span class="badge badge-{{ 'success' if enrollment.is_active else 'warning' }}">
+            {{ 'Active' if enrollment.is_active else 'Inactive' }}
+          </span>
+          {% if enrollment.is_active %}
+          <form method="POST" action="{{ url_for('mentor.remove_student_from_course', course_id=course.id, student_id=enrollment.user_id) }}"
+                onsubmit="return confirm('Deactivate access for {{ enrollment.user.name }}?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm" style="background:rgba(239,68,68,0.1);color:var(--danger);border:1px solid var(--danger);padding:0.25rem 0.6rem;border-radius:var(--radius-sm);">
+              <i class="bi bi-person-dash"></i>
+            </button>
+          </form>
+          {% else %}
+          <form method="POST" action="{{ url_for('mentor.restore_student_to_course', course_id=course.id, student_id=enrollment.user_id) }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-sm" style="background:rgba(34,197,94,0.1);color:var(--success);border:1px solid var(--success);padding:0.25rem 0.6rem;border-radius:var(--radius-sm);">
+              <i class="bi bi-person-check"></i>
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:2rem;">
+        <div style="font-size:1.5rem;margin-bottom:0.5rem;">👥</div>
+        <p style="font-size:0.85rem;">No students enrolled yet. Add them using the form above.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Course Content Summary -->
+  <div style="display:flex;flex-direction:column;gap:1rem;">
+
+    <!-- Quick Stats -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-bar-chart" style="color:var(--accent)"></i> Content Overview</div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+          <div style="text-align:center;padding:1rem;background:var(--bg-muted);border-radius:var(--radius-md);">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--primary);">{{ course.videos.count() }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Total Videos</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:var(--bg-muted);border-radius:var(--radius-md);">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--warning);">{{ course.quizzes.count() }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Total Quizzes</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:var(--bg-muted);border-radius:var(--radius-md);">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--success);">{{ course.videos.filter_by(status='published').count() }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Published Videos</div>
+          </div>
+          <div style="text-align:center;padding:1rem;background:var(--bg-muted);border-radius:var(--radius-md);">
+            <div style="font-size:1.5rem;font-weight:800;color:var(--accent);">{{ course.quizzes.filter_by(status='published').count() }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">Published Quizzes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card">
+      <div class="card-header"><i class="bi bi-lightning" style="color:var(--warning)"></i> Quick Actions</div>
+      <div class="card-body" style="display:flex;flex-direction:column;gap:0.5rem;">
+        <a href="{{ url_for('mentor.quizzes') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="bi bi-patch-question"></i> Manage Quizzes
+        </a>
+        <a href="{{ url_for('mentor.videos', course_id=course.id) }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="bi bi-play-circle"></i> Manage Videos
+        </a>
+        <a href="{{ url_for('mentor.updates') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="bi bi-megaphone"></i> Post Update
+        </a>
+        <a href="{{ url_for('mentor.messages') }}" class="btn btn-outline" style="justify-content:flex-start;">
+          <i class="bi bi-chat-dots"></i> View Messages
+        </a>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

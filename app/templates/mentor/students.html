@@ -1,0 +1,123 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Students{% endblock %}
+{% block page_title %}Students{% endblock %}
+
+{% block page_content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">All Students</h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Manage and monitor your students</p>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header"><i class="bi bi-person-plus" style="color:var(--primary)"></i> Assign Course Access</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('mentor.assign_student_to_course') }}" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="flex:1;min-width:220px;">
+        <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:0.4rem;display:block;">STUDENT EMAIL</label>
+        <input type="email" name="email" class="form-control" placeholder="student@gmail.com" required>
+      </div>
+      <div style="flex:1;min-width:220px;">
+        <label style="font-size:0.8rem;font-weight:600;color:var(--text-muted);margin-bottom:0.4rem;display:block;">COURSE</label>
+        <select name="course_id" class="form-control" required>
+          <option value="">Select a course</option>
+          {% for course in courses %}
+          <option value="{{ course.id }}">{{ course.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Assign Course</button>
+    </form>
+  </div>
+</div>
+
+<!-- Search Bar -->
+<form method="GET" action="{{ url_for('mentor.students') }}" style="margin-bottom:1.5rem;">
+  <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+    <div style="position:relative;flex:1;min-width:200px;">
+      <i class="bi bi-search" style="position:absolute;left:1rem;top:50%;transform:translateY(-50%);color:var(--text-muted);"></i>
+      <input type="text" name="search" value="{{ search }}" class="form-control" placeholder="Search by name or email..." style="padding-left:2.75rem;">
+    </div>
+    <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Search</button>
+    <select name="course_id" class="form-control" style="max-width:220px;">
+      <option value="">All courses</option>
+      {% for course in courses %}
+      <option value="{{ course.id }}" {% if course_filter == course.id|string %}selected{% endif %}>{{ course.name }}</option>
+      {% endfor %}
+    </select>
+    {% if search or course_filter %}<a href="{{ url_for('mentor.students') }}" class="btn btn-outline">Clear</a>{% endif %}
+  </div>
+</form>
+
+<!-- Students Table -->
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    {% if students %}
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Student</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Courses</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Quizzes</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Joined</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Status</th>
+            <th style="padding:1rem 1.5rem;text-align:left;font-size:0.75rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);font-weight:600;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <td style="padding:1rem 1.5rem;">
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <div style="width:38px;height:38px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem;flex-shrink:0;">
+                  {{ student.name[0].upper() }}
+                </div>
+                <div>
+                  <div style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">{{ student.name }}</div>
+                  <div style="font-size:0.75rem;color:var(--text-muted);">{{ student.email }}</div>
+                </div>
+              </div>
+            </td>
+            <td style="padding:1rem 1.5rem;">
+              {% set enrolled_courses = student.get_enrolled_courses() %}
+              <span style="font-weight:600;color:var(--text-primary);">{{ enrolled_courses|length }}</span>
+              <span style="font-size:0.78rem;color:var(--text-muted);"> course(s)</span>
+              {% if enrolled_courses %}
+              <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.25rem;">{{ enrolled_courses|map(attribute='name')|join(', ') }}</div>
+              {% endif %}
+            </td>
+            <td style="padding:1rem 1.5rem;">
+              <span style="font-weight:600;color:var(--text-primary);">{{ student.quiz_attempts.count() }}</span>
+              <span style="font-size:0.78rem;color:var(--text-muted);"> attempt(s)</span>
+            </td>
+            <td style="padding:1rem 1.5rem;font-size:0.825rem;color:var(--text-muted);">
+              {{ student.created_at.strftime('%b %d, %Y') }}
+            </td>
+            <td style="padding:1rem 1.5rem;">
+              <span class="badge badge-{{ 'success' if student.is_active else 'danger' }}">
+                {{ 'Active' if student.is_active else 'Inactive' }}
+              </span>
+            </td>
+            <td style="padding:1rem 1.5rem;">
+              <a href="{{ url_for('mentor.student_detail', student_id=student.id) }}" class="btn btn-outline btn-sm">
+                <i class="bi bi-eye"></i> View
+              </a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:3rem;">
+      <div class="empty-state-icon">👥</div>
+      <h3>No students found</h3>
+      <p>{% if search %}No results for "{{ search }}". {% endif %}Students appear here after they register and are added to a course.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

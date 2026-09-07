@@ -1,0 +1,219 @@
+{% extends "base.html" %}
+{% block title %}My Progress — LearnSpace{% endblock %}
+{% block content %}
+<div class="page-wrapper" style="max-width:960px;">
+  <div class="page-header">
+    <h1 class="page-title">My Progress</h1>
+    <p class="page-subtitle">Track your performance across all enrolled courses</p>
+  </div>
+
+  <!-- ── Overall Stats ── -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:2rem;">
+    {% set total_correct  = attempts|sum(attribute='correct_count') %}
+    {% set total_wrong    = attempts|sum(attribute='wrong_count') %}
+    {% set total_skipped  = attempts|sum(attribute='skipped_count') %}
+    <div class="card" style="text-align:center;">
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="font-size:1.8rem;font-weight:900;color:var(--primary);">{{ attempts|length }}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Quizzes Taken</div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="font-size:1.8rem;font-weight:900;color:{% if overall_pct >= 50 %}#22c55e{% else %}#ef4444{% endif %};">{{ overall_pct }}%</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Overall Score</div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="font-size:1.8rem;font-weight:900;color:#22c55e;">{{ total_correct }}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Correct Answers</div>
+      </div>
+    </div>
+    <div class="card" style="text-align:center;">
+      <div class="card-body" style="padding:1.25rem;">
+        <div style="font-size:1.8rem;font-weight:900;color:var(--text-primary);">{{ enrolled_courses|length }}</div>
+        <div style="font-size:0.72rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Courses</div>
+      </div>
+    </div>
+  </div>
+
+  {% if attempts %}
+  <!-- ── Score Trend Chart ── -->
+  <div class="card" style="margin-bottom:1.5rem;">
+    <div class="card-header"><i class="bi bi-graph-up-arrow" style="color:var(--primary)"></i> Score Trend</div>
+    <div class="card-body" style="padding:1.25rem;">
+      <canvas id="scoreChart" height="100"></canvas>
+    </div>
+  </div>
+
+  <!-- ── Attempt Details ── -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-list-check" style="color:var(--accent)"></i> All Quiz Attempts</div>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:0.8rem 1.5rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Quiz</th>
+            <th style="padding:0.8rem 1rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Course</th>
+            <th style="padding:0.8rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Score</th>
+            <th style="padding:0.8rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Result</th>
+            <th style="padding:0.8rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Breakdown</th>
+            <th style="padding:0.8rem 1.5rem;text-align:right;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Date</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for a in attempts %}
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.15s;"
+              onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background=''">
+            <td style="padding:0.85rem 1.5rem;">
+              <a href="{{ url_for('student.quiz_result', quiz_id=a.quiz_id) }}"
+                 style="font-weight:600;color:var(--primary);text-decoration:none;font-size:0.875rem;">
+                {{ a.quiz.title }}
+              </a>
+            </td>
+            <td style="padding:0.85rem 1rem;font-size:0.8rem;color:var(--text-secondary);">{{ a.quiz.course.name }}</td>
+            <td style="padding:0.85rem 1rem;text-align:center;font-weight:700;color:var(--text-primary);">{{ a.score }}/{{ a.total_marks }}</td>
+            <td style="padding:0.85rem 1rem;text-align:center;">
+              <span style="font-size:0.78rem;padding:0.2rem 0.65rem;border-radius:20px;font-weight:700;
+                {% if a.percentage >= 80 %}background:rgba(34,197,94,0.15);color:#16a34a;
+                {% elif a.percentage >= 50 %}background:rgba(245,158,11,0.15);color:#d97706;
+                {% else %}background:rgba(239,68,68,0.15);color:#dc2626;{% endif %}">
+                {{ "%.0f"|format(a.percentage) }}%
+              </span>
+            </td>
+            <td style="padding:0.85rem 1rem;text-align:center;">
+              <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;font-size:0.75rem;">
+                <span style="color:#16a34a;" title="Correct"><i class="bi bi-check-circle"></i> {{ a.correct_count }}</span>
+                <span style="color:#dc2626;" title="Wrong"><i class="bi bi-x-circle"></i> {{ a.wrong_count }}</span>
+                <span style="color:var(--text-muted);" title="Skipped"><i class="bi bi-dash-circle"></i> {{ a.skipped_count }}</span>
+              </div>
+            </td>
+            <td style="padding:0.85rem 1.5rem;text-align:right;font-size:0.75rem;color:var(--text-muted);">
+              {% if a.submitted_at %}{{ a.submitted_at.strftime('%b %d, %Y') }}{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  {% else %}
+  <!-- Empty state -->
+  <div class="card">
+    <div class="card-body empty-state" style="padding:4rem;">
+      <div class="empty-state-icon">📊</div>
+      <h3>No quiz attempts yet</h3>
+      <p>Take your first quiz to start tracking your progress here.</p>
+      <a href="{{ url_for('student.courses') }}" class="btn btn-primary">Go to Courses</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Course cards -->
+  {% if enrolled_courses %}
+  <div style="margin-top:1.5rem;">
+    <div style="font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:0.75rem;">Enrolled Courses</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1rem;">
+      {% for course in enrolled_courses %}
+      {% set course_attempts = attempts|selectattr('quiz.course_id','equalto',course.id)|list %}
+      {% set course_avg = (course_attempts|sum(attribute='percentage') / course_attempts|length)|round(0)|int if course_attempts else 0 %}
+      <a href="{{ url_for('student.course_detail', course_id=course.id) }}" style="text-decoration:none;">
+        <div class="card" style="transition:transform 0.2s,box-shadow 0.2s;cursor:pointer;"
+             onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='var(--shadow-lg)'"
+             onmouseout="this.style.transform='';this.style.boxShadow=''">
+          <div style="height:4px;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:var(--radius-lg) var(--radius-lg) 0 0;"></div>
+          <div class="card-body" style="padding:1.25rem;">
+            <div style="font-weight:700;color:var(--text-primary);margin-bottom:0.25rem;">{{ course.name }}</div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1rem;">
+              {{ course.get_published_quizzes()|length }} quizzes &bull; {{ course.get_published_videos()|length }} resources
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.4rem;">
+              <span style="font-size:0.72rem;color:var(--text-muted);">Avg Score</span>
+              <span style="font-size:0.8rem;font-weight:700;color:{% if course_avg >= 50 %}#16a34a{% else %}var(--text-muted){% endif %};">
+                {% if course_attempts %}{{ course_avg }}%{% else %}—{% endif %}
+              </span>
+            </div>
+            <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;">
+              <div style="width:{{ course_avg }}%;height:100%;background:linear-gradient(90deg,var(--primary),var(--accent));border-radius:3px;transition:width 0.5s;"></div>
+            </div>
+          </div>
+        </div>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+{% if attempts %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+Chart.defaults.color = isDark ? 'rgba(255,255,255,0.6)' : 'rgba(0,0,0,0.5)';
+const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)';
+
+const attemptsChronological = [
+  {% for a in attempts|sort(attribute='submitted_at') %}
+  {
+    label: "{{ a.quiz.title|truncate(20,True,'…') }}",
+    pct: {{ a.percentage }},
+    date: "{{ a.submitted_at.strftime('%b %d') if a.submitted_at else '' }}"
+  },
+  {% endfor %}
+];
+
+new Chart(document.getElementById('scoreChart'), {
+  type: 'line',
+  data: {
+    labels: attemptsChronological.map(a => a.label + ' (' + a.date + ')'),
+    datasets: [{
+      label: 'Score %',
+      data: attemptsChronological.map(a => a.pct),
+      borderColor: '#6366f1',
+      backgroundColor: 'rgba(99,102,241,0.10)',
+      pointBackgroundColor: attemptsChronological.map(a => a.pct >= 50 ? '#22c55e' : '#ef4444'),
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      tension: 0.35,
+      fill: true,
+      borderWidth: 2,
+    },
+    {
+      label: 'Pass line (50%)',
+      data: attemptsChronological.map(() => 50),
+      borderColor: 'rgba(245,158,11,0.5)',
+      borderDash: [6,4],
+      borderWidth: 1.5,
+      pointRadius: 0,
+      fill: false,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: true,
+    plugins: {
+      legend: { position: 'top', labels: { boxWidth: 12, font: { size: 11 } } },
+      tooltip: {
+        callbacks: {
+          label: ctx => ctx.dataset.label === 'Score %' ? ` ${ctx.raw}%` : ` ${ctx.raw}%`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { color: gridColor }, ticks: { font: { size: 10 }, maxRotation: 30 } },
+      y: {
+        grid: { color: gridColor },
+        min: 0, max: 100,
+        ticks: { callback: v => v + '%', font: { size: 11 } }
+      }
+    }
+  }
+});
+</script>
+{% endblock %}
+{% endif %}
+{% endblock %}

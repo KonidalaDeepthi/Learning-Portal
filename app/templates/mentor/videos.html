@@ -1,0 +1,53 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Resources{% endblock %}
+{% block page_title %}Learning Resources{% endblock %}
+{% block page_content %}
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);">Learning Resources</h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Videos and materials for your courses</p>
+  </div>
+  <a href="/mentor/videos/create" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Add Resource</a>
+</div>
+<div class="card">
+  <div class="card-body" style="padding:0;">
+    {% if videos %}
+    <div style="display:flex;flex-direction:column;">
+      {% for video in videos %}
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem 1.5rem;border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+        <div style="display:flex;align-items:center;gap:1rem;">
+          <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="bi bi-play-fill" style="color:white;font-size:1.1rem;"></i>
+          </div>
+          <div>
+            <div style="font-weight:600;color:var(--text-primary);">{{ ('Day ' ~ video.day_number ~ ' — ') if video.day_number else '' }}{{ video.title }}</div>
+            <div style="font-size:0.75rem;color:var(--text-muted);">{{ video.course.name }} · {{ video.topic or 'General' }} · {{ video.resource_type }}</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:0.75rem;">
+          <span class="badge badge-{{ 'success' if video.status == 'published' else 'warning' }}">{{ video.status }}</span>
+          <a href="{{ video.watch_url }}" target="_blank" class="btn btn-outline btn-sm" title="Watch"><i class="bi bi-box-arrow-up-right"></i></a>
+          <a href="{{ url_for('mentor.edit_video', video_id=video.id) }}" class="btn btn-outline btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
+          <form method="POST" action="{{ url_for('mentor.toggle_video_status', video_id=video.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline btn-sm" title="{{ 'Unpublish' if video.status == 'published' else 'Publish' }}"><i class="bi bi-{{ 'eye-slash' if video.status == 'published' else 'eye' }}"></i></button>
+          </form>
+          <form method="POST" action="{{ url_for('mentor.delete_video', video_id=video.id) }}" style="display:inline;" onsubmit="return confirm('Delete this resource?')">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button class="btn btn-outline btn-sm" title="Delete"><i class="bi bi-trash"></i></button>
+          </form>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:3rem;">
+      <div class="empty-state-icon">🎬</div>
+      <h3>No resources yet</h3>
+      <p>Add YouTube videos, Google Drive links, or any learning material.</p>
+      <a href="/mentor/videos/create" class="btn btn-primary" style="margin-top:1rem;">Add First Resource</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

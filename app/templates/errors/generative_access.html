@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Upgrade Required{% endblock %}
+{% block content %}
+<div style="min-height:70vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+  <div style="max-width:520px;">
+    <div style="font-size:4rem;margin-bottom:1rem;">🔒</div>
+    <h1 style="font-size:2rem;font-weight:800;color:var(--primary);margin-bottom:0.75rem;">Upgrade Required</h1>
+    <p style="color:var(--text-secondary);line-height:1.6;margin-bottom:1.25rem;">
+      Your account does not currently have access to the Generative AI course. Please upgrade your access or contact your mentor for assistance.
+    </p>
+    <div style="margin-top:1rem;">
+      <a href="{{ url_for('student.home') }}" class="btn btn-outline"><i class="bi bi-house"></i> Back to Home</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

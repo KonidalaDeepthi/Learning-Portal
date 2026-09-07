@@ -1,0 +1,58 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Daily Updates{% endblock %}
+{% block page_title %}Daily Updates{% endblock %}
+{% block page_content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+  <!-- Post New Update -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-megaphone" style="color:var(--accent)"></i> Post New Update</div>
+    <div class="card-body">
+      <form method="POST" action="/mentor/updates/create">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input type="text" name="title" class="form-control" placeholder="Today's update title" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content *</label>
+          <textarea name="content" class="form-control" rows="5" placeholder="What should students do today?..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Target Course (optional)</label>
+          <select name="course_id" class="form-control">
+            <option value="">All Students (Global)</option>
+            {% for course in courses %}
+            <option value="{{ course.id }}">{{ course.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Post Update</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Past Updates -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-clock-history" style="color:var(--primary)"></i> Recent Updates ({{ updates|length }})</div>
+    <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto;">
+      {% if updates %}
+      {% for update in updates %}
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.4rem;">
+          <span style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">{{ update.title }}</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);white-space:nowrap;margin-left:0.5rem;">{{ update.created_at.strftime('%b %d') }}</span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;">{{ update.content[:100] ~ '...' if update.content|length > 100 else update.content }}</div>
+        {% if update.course %}<span class="badge badge-primary" style="margin-top:0.4rem;font-size:0.65rem;">{{ update.course.name }}</span>
+        {% else %}<span class="badge badge-info" style="margin-top:0.4rem;font-size:0.65rem;">Global</span>{% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:2rem;"><div style="font-size:1.5rem;">📋</div><p style="font-size:0.85rem;margin-top:0.5rem;">No updates posted yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+{% endblock %}

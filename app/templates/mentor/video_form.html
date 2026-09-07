@@ -1,0 +1,203 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}{{ 'Edit' if video else 'Add' }} Learning Resource{% endblock %}
+{% block page_title %}{{ 'Edit' if video else 'Add' }} Learning Resource{% endblock %}
+
+{% block page_content %}
+<div style="max-width:780px;">
+
+  <!-- Back -->
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ url_for('mentor.videos') }}" style="color:var(--text-muted);font-size:0.875rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;">
+      <i class="bi bi-arrow-left"></i> Back to Resources
+    </a>
+  </div>
+
+  <!-- Page heading -->
+  <div style="margin-bottom:1.75rem;">
+    <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);margin:0 0 0.25rem;">
+    <i class="bi bi-play-circle" style="color:var(--primary);margin-right:0.5rem;"></i>{{ 'Edit' if video else 'Add' }} Learning Resource
+    </h2>
+    <p style="color:var(--text-muted);font-size:0.875rem;margin:0;">Share a video, article, document, or assignment with your students.</p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 280px;gap:1.5rem;align-items:start;">
+
+    <!-- Main Form Card -->
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;gap:0.6rem;">
+        <i class="bi bi-plus-circle" style="color:var(--primary);"></i>
+        <span>Resource Details</span>
+      </div>
+      <div class="card-body" style="padding:1.75rem;">
+        <form method="POST" action="{{ url_for('mentor.edit_video', video_id=video.id) if video else url_for('mentor.create_video') }}">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+          <!-- Title -->
+          <div class="form-group">
+            <label class="form-label" for="title">
+              Title <span style="color:var(--danger);">*</span>
+            </label>
+                 <input type="text" id="title" name="title" class="form-control"
+                   placeholder="e.g. Introduction to Flask Routing"
+                   value="{{ video.title if video else '' }}" required autocomplete="off">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">
+              Give your resource a clear, descriptive title.
+            </div>
+          </div>
+
+          <!-- URL -->
+          <div class="form-group">
+            <label class="form-label" for="url">
+              Resource URL <span style="color:var(--danger);">*</span>
+            </label>
+            <div style="position:relative;">
+              <i class="bi bi-link-45deg" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-muted);pointer-events:none;"></i>
+              <input type="url" id="url" name="url" class="form-control"
+                     style="padding-left:2.4rem;"
+                     placeholder="https://youtube.com/watch?v=... or drive.google.com/..."
+                value="{{ video.url if video else '' }}" required autocomplete="off">
+            </div>
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">
+              YouTube, Google Drive, GitHub Gist, or any accessible URL.
+            </div>
+          </div>
+
+          <!-- Course + Topic row -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label class="form-label" for="course_id">Course</label>
+              <select id="course_id" name="course_id" class="form-control">
+                <option value="">— No course —</option>
+                {% for course in courses %}
+                <option value="{{ course.id }}" {% if video and video.course_id == course.id %}selected{% endif %}>{{ course.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="topic">Topic</label>
+              <input type="text" id="topic" name="topic" class="form-control"
+                placeholder="e.g. Flask Basics" value="{{ video.topic if video else '' }}">
+              <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Optional sub-topic label.</div>
+            </div>
+          </div>
+
+          <!-- Description -->
+          <div class="form-group">
+            <label class="form-label" for="description">Description</label>
+            <textarea id="description" name="description" class="form-control" rows="4"
+                      placeholder="What will students learn from this resource? Any prerequisites?">{{ video.description if video else '' }}</textarea>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="day_number">Day Number</label>
+            <input type="number" id="day_number" name="day_number" class="form-control"
+                   min="1" placeholder="e.g. 1" value="{{ video.day_number if video and video.day_number else '' }}">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Use this to order lessons such as Day 1, Day 2, and Day 13.</div>
+          </div>
+
+          <!-- Resource Type + Status row -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+            <div class="form-group">
+              <label class="form-label" for="resource_type">Resource Type</label>
+              <select id="resource_type" name="resource_type" class="form-control">
+                <option value="video" {% if not video or video.resource_type == 'video' %}selected{% endif %}>🎬 Video</option>
+                <option value="article" {% if video and video.resource_type == 'article' %}selected{% endif %}>📄 Article</option>
+                <option value="document" {% if video and video.resource_type == 'document' %}selected{% endif %}>📁 Document</option>
+                <option value="assignment" {% if video and video.resource_type == 'assignment' %}selected{% endif %}>📝 Assignment</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="status">Status</label>
+              <select id="status" name="status" class="form-control">
+                <option value="draft" {% if not video or video.status == 'draft' %}selected{% endif %}>🔒 Draft</option>
+                <option value="published" {% if video and video.status == 'published' %}selected{% endif %}>🌐 Published</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div style="display:flex;gap:0.75rem;margin-top:0.5rem;">
+            <button type="submit" class="btn btn-primary" style="flex:1;">
+              <i class="bi bi-cloud-upload"></i> {{ 'Save Changes' if video else 'Publish Resource' }}
+            </button>
+            <a href="{{ url_for('mentor.videos') }}" class="btn btn-outline">
+              Cancel
+            </a>
+          </div>
+
+        </form>
+      </div>
+    </div>
+
+    <!-- Sidebar: Supported Links card -->
+    <div>
+      <div class="card" style="margin-bottom:1rem;">
+        <div class="card-header" style="display:flex;align-items:center;gap:0.6rem;">
+          <i class="bi bi-patch-check" style="color:var(--success);"></i>
+          <span>Supported Links</span>
+        </div>
+        <div class="card-body" style="padding:1rem;">
+
+          <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0;border-bottom:1px solid var(--border);">
+            <div style="width:36px;height:36px;background:#ff0000;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-youtube" style="color:white;font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">YouTube</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">youtube.com/watch, youtu.be</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0;border-bottom:1px solid var(--border);">
+            <div style="width:36px;height:36px;background:#1a73e8;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-google" style="color:white;font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Google Drive</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">drive.google.com shared links</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0;border-bottom:1px solid var(--border);">
+            <div style="width:36px;height:36px;background:#24292e;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-github" style="color:white;font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">GitHub Gist</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">gist.github.com snippets</div>
+            </div>
+          </div>
+
+          <div style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.7rem 0;">
+            <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="bi bi-link-45deg" style="color:white;font-size:1.1rem;"></i>
+            </div>
+            <div>
+              <div style="font-weight:600;font-size:0.85rem;color:var(--text-primary);">Any URL</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">Any publicly accessible link</div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- Tips card -->
+      <div class="card">
+        <div class="card-header" style="display:flex;align-items:center;gap:0.6rem;">
+          <i class="bi bi-lightbulb" style="color:var(--warning);"></i>
+          <span>Tips</span>
+        </div>
+        <div class="card-body" style="padding:1rem;">
+          <ul style="list-style:none;padding:0;margin:0;font-size:0.8rem;color:var(--text-muted);display:flex;flex-direction:column;gap:0.6rem;">
+            <li><i class="bi bi-check2-circle" style="color:var(--success);margin-right:0.4rem;"></i>Use Draft to save without publishing.</li>
+            <li><i class="bi bi-check2-circle" style="color:var(--success);margin-right:0.4rem;"></i>Published resources appear instantly.</li>
+            <li><i class="bi bi-check2-circle" style="color:var(--success);margin-right:0.4rem;"></i>Add a Topic to help students find content.</li>
+            <li><i class="bi bi-check2-circle" style="color:var(--success);margin-right:0.4rem;"></i>Link to a Course to organise your material.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

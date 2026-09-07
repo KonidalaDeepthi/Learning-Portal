@@ -1,0 +1,73 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Announcements{% endblock %}
+{% block page_title %}Announcements{% endblock %}
+{% block page_content %}
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;">
+
+  <!-- Send Announcement -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-broadcast" style="color:var(--accent)"></i> Send Announcement</div>
+    <div class="card-body">
+      <form method="POST" action="/mentor/announcements/send">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input type="text" name="title" class="form-control" placeholder="Announcement title" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message *</label>
+          <textarea name="content" class="form-control" rows="5" placeholder="What do you want to announce?" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Send To</label>
+          <select name="target_type" class="form-control" onchange="toggleCourseSelect(this)">
+            <option value="all">📢 All Students</option>
+            <option value="course">📚 Specific Course</option>
+          </select>
+        </div>
+        <div class="form-group" id="courseSelectGroup" style="display:none;">
+          <label class="form-label">Select Course</label>
+          <select name="target_course_id" class="form-control">
+            {% for course in courses %}
+            <option value="{{ course.id }}">{{ course.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-broadcast"></i> Send Announcement</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Sent Announcements -->
+  <div class="card">
+    <div class="card-header"><i class="bi bi-clock-history" style="color:var(--primary)"></i> Recent Announcements</div>
+    <div class="card-body" style="padding:0;max-height:500px;overflow-y:auto;">
+      {% if announcements %}
+      {% for ann in announcements %}
+      <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.35rem;">
+          <span style="font-weight:600;color:var(--text-primary);font-size:0.9rem;">{{ ann.title }}</span>
+          <span style="font-size:0.7rem;color:var(--text-muted);">{{ ann.created_at.strftime('%b %d') }}</span>
+        </div>
+        <div style="font-size:0.8rem;color:var(--text-secondary);line-height:1.5;margin-bottom:0.4rem;">{{ ann.content[:120] ~ '...' if ann.content|length > 120 else ann.content }}</div>
+        <span class="badge badge-{{ 'info' if ann.target_type == 'all' else 'primary' }}" style="font-size:0.65rem;">
+          {% if ann.target_type == 'all' %}📢 All Students
+          {% else %}📚 {{ ann.target_course.name if ann.target_course else 'Course' }}{% endif %}
+        </span>
+      </div>
+      {% endfor %}
+      {% else %}
+      <div class="empty-state" style="padding:2rem;"><div style="font-size:1.5rem;">📣</div><p style="font-size:0.85rem;margin-top:0.5rem;">No announcements sent yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<script>
+function toggleCourseSelect(select) {
+  document.getElementById('courseSelectGroup').style.display =
+    select.value === 'course' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

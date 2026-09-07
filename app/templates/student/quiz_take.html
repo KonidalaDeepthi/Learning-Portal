@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}{{ quiz.title }}{% endblock %}
+{% block navbar %}{% endblock %}
+{% block content %}
+<div style="min-height:100vh;background:var(--bg-base);">
+
+  <!-- Sticky Top Bar -->
+  <div style="position:sticky;top:0;z-index:100;background:var(--bg-surface);border-bottom:1px solid var(--border);padding:0.75rem 2rem;display:flex;align-items:center;justify-content:space-between;box-shadow:var(--shadow-md);">
+    <div>
+      <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem;">{{ quiz.title }}</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);">{{ questions|length }} Questions &bull; {{ quiz.total_marks }} Marks</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:1rem;">
+      {% if quiz.time_limit_minutes > 0 %}
+      <div id="timerBox" style="display:flex;align-items:center;gap:0.4rem;background:var(--bg-hover);padding:0.4rem 1rem;border-radius:var(--radius-full);border:1px solid var(--border);">
+        <i class="bi bi-clock" style="font-size:0.875rem;color:var(--primary);"></i>
+        <span id="timer" style="font-weight:700;font-size:0.95rem;color:var(--text-primary);font-variant-numeric:tabular-nums;">
+          {{ "%02d"|format(quiz.time_limit_minutes) }}:00
+        </span>
+      </div>
+      {% endif %}
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button type="button" class="btn btn-outline btn-sm reset-quiz-button" onclick="resetQuiz()">
+          <i class="bi bi-arrow-counterclockwise"></i> Reset Quiz
+        </button>
+        <div style="font-size:0.8rem;color:var(--text-muted);">Question <span id="currentQuestion">1</span> of {{ questions|length }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 220px;gap:1.5rem;max-width:1200px;margin:0 auto;padding:2rem 1.5rem;">
+
+    <!-- Questions Area -->
+    <div>
+      <form method="POST" action="{{ url_for('student.quiz_submit', quiz_id=quiz.id) }}" id="quizForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        {% for q in questions %}
+        {% set saved_answer = answers_map.get(q.id) %}
+        <div class="card quiz-question" id="question-{{ loop.index }}" data-index="{{ loop.index }}" style="margin-bottom:1.5rem;scroll-margin-top:80px;{% if loop.index != 1 %}display:none;{% endif %}">
+          <div class="card-body" style="padding:1.5rem;">
+            <!-- Question Header -->
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;">
+              <div style="width:32px;height:32px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.8rem;flex-shrink:0;">{{ loop.index }}</div>
+              <div>
+                <div style="font-size:0.7rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Question {{ loop.index }}</div>
+                <div style="font-size:0.75rem;color:var(--text-muted);">{{ q.marks }} mark{{ 's' if q.marks != 1 }}</div>
+              </div>
+            </div>
+            <p style="font-size:1rem;font-weight:600;color:var(--text-primary);line-height:1.6;margin-bottom:1.25rem;">{{ q.question_text }}</p>
+
+            <!-- Options -->
+            <div style="display:flex;flex-direction:column;gap:0.6rem;" id="options-{{ loop.index }}">
+              {% for letter, option_text in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+              <label class="quiz-option {% if saved_answer and letter == q.correct_option %}is-correct{% elif saved_answer and letter == saved_answer.selected_option %}is-wrong{% endif %}" for="q{{ q.id }}_{{ letter }}" style="display:flex;align-items:center;gap:0.9rem;padding:0.85rem 1.1rem;border:1.5px solid var(--border);border-radius:var(--radius-md);cursor:pointer;transition:all 0.15s;user-select:none;">
+                  <input type="radio" id="q{{ q.id }}_{{ letter }}" name="q_{{ q.id }}" value="{{ letter }}"
+                    style="display:none;" onchange="onOptionSelect(this, {{ loop.index }}, {{ q.id }})" {% if saved_answer and saved_answer.selected_option == letter %}checked{% endif %} {% if saved_answer %}disabled{% endif %}>
+                <div class="option-letter" style="width:28px;height:28px;border-radius:50%;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:0.78rem;font-weight:700;color:var(--text-muted);flex-shrink:0;transition:all 0.15s;">{{ letter }}</div>
+                <span style="font-size:0.9rem;color:var(--text-primary);line-height:1.4;">{{ option_text }}</span>
+              </label>
+              {% endfor %}
+            </div>
+            <div id="feedback-{{ loop.index }}" class="quiz-feedback" {% if not saved_answer %}hidden{% endif %}>
+              {% if saved_answer %}
+              <strong>{% if saved_answer.is_correct %}✓ Your answer is correct!{% else %}✗ Your answer is incorrect.{% endif %}</strong>
+              {% if not saved_answer.is_correct %}<div>Correct answer: {{ q.correct_option }}</div>{% endif %}
+              <p>{{ q.explanation }}</p>
+              {% endif %}
+            </div>
+            <button type="button" class="btn btn-primary next-question" data-next="{{ loop.index + 1 }}" {% if not saved_answer %}hidden{% endif %}>
+              {% if loop.last %}Finish Quiz{% else %}Next Question →{% endif %}
+            </button>
+          </div>
+        </div>
+        {% endfor %}
+
+        <!-- Submit -->
+        <div class="card" style="margin-top:1rem;">
+          <div class="card-body" style="padding:1.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:1rem;">
+              <div style="font-size:0.875rem;color:var(--text-muted);">
+                <i class="bi bi-info-circle"></i> Make sure you've answered all questions before submitting.
+              </div>
+              <button type="submit" class="btn btn-primary" id="submitBtn"
+                      onclick="return confirm('Submit your quiz? You cannot change your answers after this.')">
+                <i class="bi bi-check-circle-fill"></i> Submit Quiz
+              </button>
+            </div>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <!-- Question Navigator (sticky sidebar) -->
+    <div style="position:sticky;top:90px;height:fit-content;">
+      <div class="card">
+        <div class="card-header" style="font-size:0.75rem;">Navigator</div>
+        <div class="card-body" style="padding:1rem;">
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0.4rem;margin-bottom:1rem;">
+            {% for q in questions %}
+            <button type="button" id="nav-{{ loop.index }}"
+                  onclick="navigateTo({{ loop.index }})"
+                    style="width:32px;height:32px;border-radius:6px;border:1.5px solid var(--border);background:var(--bg-hover);color:var(--text-muted);font-size:0.75rem;font-weight:600;cursor:pointer;transition:all 0.15s;">
+              {{ loop.index }}
+            </button>
+            {% endfor %}
+          </div>
+          <div style="display:flex;flex-direction:column;gap:0.3rem;font-size:0.72rem;color:var(--text-muted);">
+            <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:10px;height:10px;border-radius:2px;background:var(--primary);"></div> Answered</div>
+            <div style="display:flex;align-items:center;gap:0.4rem;"><div style="width:10px;height:10px;border-radius:2px;background:var(--bg-hover);border:1px solid var(--border);"></div> Not answered</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+{% block extra_js %}
+<style>
+.quiz-feedback { margin-top: 1rem; padding: 0.85rem 1rem; border-radius: var(--radius-md); background: var(--bg-hover); color: var(--text-primary); }
+.quiz-feedback strong { display: block; margin-bottom: 0.35rem; }
+.quiz-feedback p { margin: 0.4rem 0 0; color: var(--text-secondary); }
+.quiz-option.is-correct { border-color: #22c55e !important; background: rgba(34,197,94,0.12) !important; }
+.quiz-option.is-wrong { border-color: #ef4444 !important; background: rgba(239,68,68,0.12) !important; }
+.quiz-option.is-correct .option-letter { background: #22c55e !important; border-color: #22c55e !important; color: white !important; }
+.quiz-option.is-wrong .option-letter { background: #ef4444 !important; border-color: #ef4444 !important; color: white !important; }
+#quizForm > .card:last-child { display: none; }
+.quiz-question .next-question { margin-top: 1rem; }
+.quiz-question .next-question[hidden] { display: none; }
+.reset-quiz-button { color: var(--danger); border-color: var(--danger); }
+</style>
+<script>
+const totalQ = {{ questions|length }};
+let currentIndex = 1;
+
+async function resetQuiz() {
+  const confirmed = window.confirm('Are you sure you want to reset this quiz? Your current progress and answers will be cleared.');
+  if (!confirmed) return;
+  const response = await fetch('{{ url_for("student.quiz_reset", quiz_id=quiz.id) }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      csrf_token: document.querySelector('input[name="csrf_token"]').value
+    })
+  });
+  if (response.ok) window.location.reload();
+}
+
+function setOptionState(label, state) {
+  label.classList.remove('is-correct', 'is-wrong');
+  if (state) label.classList.add(state);
+}
+
+async function onOptionSelect(radio, qIndex, questionId) {
+  const container = document.getElementById('options-' + qIndex);
+  const labels = [...container.querySelectorAll('.quiz-option')];
+  labels.forEach(label => setOptionState(label, null));
+  const response = await fetch('{{ url_for("student.quiz_answer", quiz_id=quiz.id) }}', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+    body: new URLSearchParams({
+      csrf_token: document.querySelector('input[name="csrf_token"]').value,
+      question_id: questionId,
+      selected_option: radio.value
+    })
+  });
+  const result = await response.json();
+  if (!response.ok) return;
+
+  labels.forEach(label => {
+    const option = label.querySelector('input').value;
+    if (option === result.correct_option) setOptionState(label, 'is-correct');
+    if (option === result.selected_option && !result.is_correct) setOptionState(label, 'is-wrong');
+    label.querySelector('input').disabled = true;
+  });
+
+  const feedback = document.getElementById('feedback-' + qIndex);
+  feedback.hidden = false;
+  feedback.innerHTML = '<strong>' + (result.is_correct ? '✓ Your answer is correct!' : '✗ Your answer is incorrect.') + '</strong>'
+    + (result.is_correct ? '' : '<div>Correct answer: ' + result.correct_option + '</div>') + '<p></p>';
+  feedback.querySelector('p').textContent = result.explanation;
+  document.querySelector('#question-' + qIndex + ' .next-question').hidden = false;
+  document.getElementById('nav-' + qIndex).classList.add('answered');
+}
+
+function navigateTo(index) {
+  if (index < 1 || index > totalQ) return;
+  document.querySelectorAll('.quiz-question').forEach(card => card.style.display = 'none');
+  document.getElementById('question-' + index).style.display = 'block';
+  currentIndex = index;
+  document.getElementById('currentQuestion').textContent = index;
+}
+
+document.querySelectorAll('.next-question').forEach(button => {
+  button.addEventListener('click', () => {
+    const next = Number(button.dataset.next);
+    if (next > totalQ) document.getElementById('quizForm').submit();
+    else navigateTo(next);
+  });
+});
+
+document.querySelectorAll('.quiz-option input:checked').forEach(input => {
+  document.getElementById('nav-' + input.closest('.quiz-question').dataset.index).classList.add('answered');
+});
+
+{% if quiz.time_limit_minutes > 0 %}
+// Timer
+let timeLeft = {{ quiz.time_limit_minutes * 60 }};
+const timerEl = document.getElementById('timer');
+const timerBox = document.getElementById('timerBox');
+
+const countdown = setInterval(() => {
+  timeLeft--;
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  timerEl.textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+
+  if (timeLeft <= 300) {  // 5 min warning
+    timerBox.style.borderColor = '#f59e0b';
+    timerEl.style.color = '#f59e0b';
+  }
+  if (timeLeft <= 60) {   // 1 min critical
+    timerBox.style.borderColor = '#ef4444';
+    timerEl.style.color = '#ef4444';
+  }
+  if (timeLeft <= 0) {
+    clearInterval(countdown);
+    document.getElementById('quizForm').submit();
+  }
+}, 1000);
+{% endif %}
+</script>
+{% endblock %}
+{% endblock %}

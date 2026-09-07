@@ -1,0 +1,104 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Results: {{ quiz.title }}{% endblock %}
+{% block page_title %}Quiz Results{% endblock %}
+{% block page_content %}
+
+<!-- Header -->
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.5rem;flex-wrap:wrap;gap:1rem;">
+  <div>
+    <h2 style="font-size:1.3rem;font-weight:800;color:var(--text-primary);margin-bottom:0.25rem;">{{ quiz.title }}</h2>
+    <div style="display:flex;gap:0.5rem;align-items:center;">
+      <span class="badge badge-primary">{{ quiz.course.name }}</span>
+      <span style="font-size:0.8rem;color:var(--text-muted);">{{ quiz.total_marks }} total marks</span>
+    </div>
+  </div>
+  <a href="{{ url_for('mentor.quiz_detail', quiz_id=quiz.id) }}" class="btn btn-outline">
+    <i class="bi bi-arrow-left"></i> Back to Quiz
+  </a>
+</div>
+
+<!-- Stats Row -->
+<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.5rem;">
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="font-size:1.8rem;font-weight:800;color:var(--primary);">{{ attempts|length }}</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Attempts</div>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="font-size:1.8rem;font-weight:800;color:var(--accent);">{{ "%.1f"|format(avg_score) }}%</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Avg Score</div>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="font-size:1.8rem;font-weight:800;color:#22c55e;">{{ "%.1f"|format(high_score) }}%</div>
+      <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Highest</div>
+    </div>
+  </div>
+  <div class="card" style="text-align:center;">
+    <div class="card-body" style="padding:1.25rem;">
+      <div style="font-size:1.8rem;font-weight:800;color:var(--text-primary);">
+        {% if attempts|length > 0 %}{{ ((pass_count / attempts|length) * 100)|int }}%{% else %}—{% endif %}
+      </div>
+      <div style="font-size:0.78rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;">Pass Rate</div>
+    </div>
+  </div>
+</div>
+
+<!-- Results Table -->
+<div class="card">
+  <div class="card-header"><i class="bi bi-table" style="color:var(--primary)"></i> Student Results ({{ attempts|length }})</div>
+  <div class="card-body" style="padding:0;">
+    {% if attempts %}
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead>
+          <tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:0.875rem 1.5rem;text-align:left;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Student</th>
+            <th style="padding:0.875rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Score</th>
+            <th style="padding:0.875rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">%</th>
+            <th style="padding:0.875rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Correct</th>
+            <th style="padding:0.875rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Wrong</th>
+            <th style="padding:0.875rem 1rem;text-align:center;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Skipped</th>
+            <th style="padding:0.875rem 1.5rem;text-align:right;font-size:0.72rem;text-transform:uppercase;color:var(--text-muted);font-weight:600;">Submitted</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for attempt in attempts %}
+          <tr style="border-bottom:1px solid var(--border);transition:background 0.15s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='transparent'">
+            <td style="padding:0.875rem 1.5rem;">
+              <div style="font-weight:600;color:var(--text-primary);">{{ attempt.user.name }}</div>
+              <div style="font-size:0.75rem;color:var(--text-muted);">{{ attempt.user.email }}</div>
+            </td>
+            <td style="padding:0.875rem 1rem;text-align:center;font-weight:700;color:var(--text-primary);">{{ attempt.score }}/{{ attempt.total_marks }}</td>
+            <td style="padding:0.875rem 1rem;text-align:center;">
+              <span style="font-weight:700;padding:0.2rem 0.6rem;border-radius:20px;font-size:0.8rem;
+                {% if attempt.percentage >= 80 %}background:rgba(34,197,94,0.15);color:#16a34a;
+                {% elif attempt.percentage >= 50 %}background:rgba(234,179,8,0.15);color:#ca8a04;
+                {% else %}background:rgba(239,68,68,0.15);color:#dc2626;{% endif %}">
+                {{ "%.1f"|format(attempt.percentage) }}%
+              </span>
+            </td>
+            <td style="padding:0.875rem 1rem;text-align:center;color:#16a34a;font-weight:600;">{{ attempt.correct_count }}</td>
+            <td style="padding:0.875rem 1rem;text-align:center;color:#dc2626;font-weight:600;">{{ attempt.wrong_count }}</td>
+            <td style="padding:0.875rem 1rem;text-align:center;color:var(--text-muted);font-weight:600;">{{ attempt.skipped_count }}</td>
+            <td style="padding:0.875rem 1.5rem;text-align:right;font-size:0.78rem;color:var(--text-muted);">
+              {% if attempt.submitted_at %}{{ attempt.submitted_at.strftime('%b %d, %I:%M %p') }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="empty-state" style="padding:3rem;">
+      <div class="empty-state-icon">📊</div>
+      <h3>No attempts yet</h3>
+      <p>Students haven't taken this quiz yet. Make sure it's published.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}{{ course.name }}{% endblock %}
+{% block content %}
+<div class="page-wrapper">
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ url_for('student.courses') }}" style="color:var(--text-muted); font-size:0.875rem;">
+      <i class="bi bi-arrow-left"></i> Back to Courses
+    </a>
+  </div>
+  <div class="page-header">
+    <div class="course-badge" style="margin-bottom:0.5rem;"><i class="bi bi-mortarboard"></i> Course</div>
+    <h1 class="page-title">{{ course.name }}</h1>
+    <p class="page-subtitle">{{ course.description }}</p>
+  </div>
+
+  <div style="display:grid; grid-template-columns:2fr 1fr; gap:1.5rem;">
+    <div>
+      <!-- Videos -->
+      <div class="card" style="margin-bottom:1.5rem;">
+        <div class="card-header"><i class="bi bi-play-circle" style="color:var(--primary)"></i> Learning Resources ({{ videos|length }})</div>
+        <div class="card-body">
+          {% if videos %}
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            {% for video in videos %}
+            <a href="{{ video.watch_url }}" target="_blank" style="display:flex;align-items:center;gap:1rem;padding:0.9rem;background:var(--bg-muted);border-radius:var(--radius-md);text-decoration:none;transition:background 0.2s;" onmouseover="this.style.background='var(--bg-hover)'" onmouseout="this.style.background='var(--bg-muted)'">
+              <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:var(--radius-md);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                <i class="bi bi-play-fill" style="color:white;font-size:1rem;"></i>
+              </div>
+              <div>
+                <div style="font-weight:600;color:var(--text-primary);">{{ video.title if course.name == 'Generative AI' else (('Day ' ~ video.day_number ~ ' — ') if video.day_number else '') ~ video.title }}</div>
+                {% if course.name != 'Generative AI' %}<div style="font-size:0.78rem;color:var(--text-muted);">{{ video.topic or 'General' }} · {{ video.resource_type }}</div>{% endif %}
+              </div>
+              <i class="bi bi-box-arrow-up-right" style="margin-left:auto;color:var(--text-muted);"></i>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state" style="padding:1.5rem;"><div style="font-size:1.5rem;">🎬</div><p>No resources added yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quizzes -->
+      <div class="card">
+        <div class="card-header"><i class="bi bi-patch-question" style="color:var(--warning)"></i> Quizzes ({{ quizzes|length }})</div>
+        <div class="card-body">
+          {% if quizzes %}
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
+            {% for quiz in quizzes %}
+            {% set attempt = current_user.quiz_attempts.filter_by(quiz_id=quiz.id).first() %}
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:1rem;background:var(--bg-muted);border-radius:var(--radius-md);">
+              <div>
+                <div style="font-weight:600;color:var(--text-primary);">{{ quiz.title }}</div>
+                <div style="font-size:0.78rem;color:var(--text-muted);">{{ quiz.get_question_count() }} questions · {{ quiz.total_marks }} marks</div>
+              </div>
+              {% if attempt and attempt.submitted_at %}
+              <span class="badge badge-success"><i class="bi bi-check-circle"></i> Completed · {{ attempt.score }}/{{ attempt.total_marks }}</span>
+              {% else %}
+              <a href="{{ url_for('student.quiz_start', quiz_id=quiz.id) }}" class="btn btn-primary btn-sm"><i class="bi bi-play-fill"></i> Start</a>
+              {% endif %}
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state" style="padding:1.5rem;"><div style="font-size:1.5rem;">📝</div><p>No quizzes yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Right column -->
+    <div>
+      <div class="card">
+        <div class="card-header"><i class="bi bi-megaphone" style="color:var(--accent)"></i> Updates</div>
+        <div class="card-body">
+          {% if updates %}
+          {% for update in updates %}
+          <div style="{% if not loop.last %}padding-bottom:1rem;border-bottom:1px solid var(--border);margin-bottom:1rem;{% endif %}">
+            <div style="font-weight:600;font-size:0.875rem;color:var(--text-primary);">{{ update.title }}</div>
+            <div style="font-size:0.8rem;color:var(--text-secondary);margin-top:0.25rem;line-height:1.5;">{{ update.content[:120] ~ '...' if update.content|length > 120 else update.content }}</div>
+            <div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.4rem;"><i class="bi bi-clock"></i> {{ update.created_at.strftime('%b %d') }}</div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="empty-state" style="padding:1rem;"><p style="font-size:0.85rem;">No updates yet.</p></div>
+          {% endif %}
+        </div>
+      </div>
+
+      {% if course.name == 'Generative AI' %}
+      <a href="mailto:neoskillzinfo@gmail.com" data-support-email="neoskillzinfo@gmail.com" class="btn btn-primary support-email-link" style="width:100%;margin-top:1.5rem;">
+        <i class="bi bi-life-preserver"></i> Doubt &amp; Support: neoskillzinfo@gmail.com
+      </a>
+      {% elif course.name == 'Python Full Stack' %}
+      <a href="mailto:strydotechnologies79@gmail.com" data-support-email="strydotechnologies79@gmail.com" class="btn btn-primary support-email-link" style="width:100%;margin-top:1.5rem;">
+        <i class="bi bi-life-preserver"></i> Doubt &amp; Support: strydotechnologies79@gmail.com
+      </a>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

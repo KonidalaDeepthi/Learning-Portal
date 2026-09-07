@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<!--
+  mentor/base_mentor.html â€” Mentor Layout
+  =========================================
+  All mentor pages extend this template instead of base.html.
+  It provides the sidebar navigation specific to the mentor dashboard.
+
+  Child templates extend this and fill the 'page_content' block.
+-->
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Dashboard{% endblock %} â€” Mentor Panel</title>
+
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+
+  <!-- Mentor always loads in dark mode by default -->
+  <script>
+    (function(){
+      const t = localStorage.getItem('theme') || localStorage.getItem('mentor-theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', t);
+    })();
+  </script>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+<div class="mentor-layout">
+
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       SIDEBAR
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <aside class="mentor-sidebar" id="mentorSidebar">
+
+    <!-- Brand -->
+    <div class="sidebar-brand">
+      <div class="sidebar-brand-logo">L</div>
+      <div>
+        <div class="sidebar-brand-text">LearnSpace</div>
+        <div style="font-size:0.65rem;color:rgba(255,255,255,0.4);text-transform:uppercase;letter-spacing:1px;">Mentor Panel</div>
+      </div>
+    </div>
+
+    <!-- Admin info -->
+    <div style="padding:1rem 1.5rem;border-bottom:1px solid rgba(255,255,255,0.06);">
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.9rem;flex-shrink:0;">
+          {{ current_user.name[0].upper() }}
+        </div>
+        <div>
+          <div style="font-weight:600;color:white;font-size:0.85rem;">{{ current_user.name }}</div>
+          <div style="font-size:0.7rem;color:rgba(255,255,255,0.4);">Mentor & Admin</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <nav style="padding:0.5rem 0;flex:1;overflow-y:auto;">
+
+      <div class="sidebar-section-label">Overview</div>
+      <a href="{{ url_for('mentor.dashboard') }}"
+         class="sidebar-nav-item {% if request.endpoint == 'mentor.dashboard' %}active{% endif %}">
+        <i class="bi bi-grid-1x2 sidebar-icon"></i> Dashboard
+      </a>
+
+      <div class="sidebar-section-label">People</div>
+      <a href="{{ url_for('mentor.students') }}"
+         class="sidebar-nav-item {% if 'student' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-people sidebar-icon"></i> Students
+      </a>
+      <div class="sidebar-section-label">Content</div>
+      <a href="{{ url_for('mentor.courses') }}"
+         class="sidebar-nav-item {% if 'course' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-book sidebar-icon"></i> Courses
+      </a>
+      <a href="{{ url_for('mentor.quizzes') }}"
+         class="sidebar-nav-item {% if 'quiz' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-patch-question sidebar-icon"></i> Quizzes
+      </a>
+      <a href="{{ url_for('mentor.results') }}"
+         class="sidebar-nav-item {% if request.endpoint in ['mentor.results', 'mentor.quiz_results'] %}active{% endif %}">
+        <i class="bi bi-bar-chart sidebar-icon"></i> Quiz Results
+      </a>
+      <a href="{{ url_for('mentor.videos') }}"
+         class="sidebar-nav-item {% if 'video' in request.endpoint %}active{% endif %}">
+        <i class="bi bi-play-circle sidebar-icon"></i> Resources
+      </a>
+      <a href="{{ url_for('mentor.updates') }}"
+         class="sidebar-nav-item {% if request.endpoint == 'mentor.updates' %}active{% endif %}">
+        <i class="bi bi-megaphone sidebar-icon"></i> Daily Updates
+      </a>
+
+      <div class="sidebar-section-label">Communication</div>
+      <a href="{{ url_for('mentor.messages') }}"
+         class="sidebar-nav-item {% if request.endpoint == 'mentor.messages' %}active{% endif %}">
+        <i class="bi bi-chat-dots sidebar-icon"></i> Messages
+        {% set total_unread = namespace(count=0) %}
+        <!-- Unread badge will be added in later phase -->
+      </a>
+      <a href="{{ url_for('mentor.announcements') }}"
+         class="sidebar-nav-item {% if request.endpoint == 'mentor.announcements' %}active{% endif %}">
+        <i class="bi bi-broadcast sidebar-icon"></i> Announcements
+      </a>
+
+    </nav>
+
+    <!-- Sidebar Footer -->
+    <div class="sidebar-footer">
+      <a href="{{ url_for('student.home') }}" class="sidebar-nav-item">
+        <i class="bi bi-mortarboard sidebar-icon"></i> Student Portal
+      </a>
+      <a href="{{ url_for('auth.logout') }}" class="sidebar-nav-item"
+         style="color:#f87171;" onmouseover="this.style.color='#fca5a5'" onmouseout="this.style.color='#f87171'">
+        <i class="bi bi-box-arrow-right sidebar-icon"></i> Logout
+      </a>
+    </div>
+
+  </aside>
+
+  <!-- â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+       MAIN CONTENT AREA
+  â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• -->
+  <main class="mentor-main">
+
+    <!-- Top bar -->
+    <div style="background:var(--bg-surface);border-bottom:1px solid var(--border);padding:0.9rem 2rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;">
+      <!-- Mobile toggle -->
+      <button id="sidebarToggle" style="background:none;border:none;cursor:pointer;color:var(--text-secondary);font-size:1.2rem;display:none;" class="d-md-none">
+        <i class="bi bi-list"></i>
+      </button>
+
+      <!-- Page breadcrumb -->
+      <div style="font-size:0.85rem;color:var(--text-muted);">
+        <span style="color:var(--primary);">Mentor Panel</span>
+      </div>
+
+      <!-- Right: Notifications + Profile -->
+      <div style="display:flex;align-items:center;gap:0.75rem;">
+        <button type="button" class="btn btn-outline btn-sm" data-theme-toggle
+                title="Switch to light theme" aria-label="Switch to light theme">
+          <i class="bi bi-moon-stars" data-theme-icon></i>
+          <span data-theme-label class="visually-hidden">Switch to light theme</span>
+        </button>
+        <a href="{{ url_for('mentor.messages') }}" class="notif-btn" title="Messages">
+          <i class="bi bi-chat-dots"></i>
+          {% if mentor_unread_messages %}<span class="notif-badge">{{ mentor_unread_messages if mentor_unread_messages < 10 else '9+' }}</span>{% endif %}
+        </a>
+        <div style="display:flex;align-items:center;gap:0.5rem;">
+          <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.85rem;">
+            {{ current_user.name[0].upper() }}
+          </div>
+          <span style="font-size:0.875rem;font-weight:600;color:var(--text-primary);">{{ current_user.name.split()[0] }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <div style="padding:1rem 2rem 0;">
+        {% for category, message in messages %}
+        <div class="alert alert-{{ 'danger' if category == 'error' else category }} auto-dismiss" style="margin-bottom:0.5rem;transition:opacity 0.3s,transform 0.3s;">
+          <i class="bi bi-{% if category == 'success' %}check-circle{% elif category in ['danger','error'] %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+          {{ message }}
+          <button onclick="this.parentElement.remove()" style="margin-left:auto;background:none;border:none;cursor:pointer;opacity:0.5;">âœ•</button>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    {% endwith %}
+
+    <!-- Page Content -->
+    <div style="padding:2rem;">
+      {% block page_content %}{% endblock %}
+    </div>
+
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/theme.js') }}"></script>
+<!-- Mobile sidebar toggle -->
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+<script>
+const sidebar  = document.getElementById('mentorSidebar');
+const overlay  = document.getElementById('sidebarOverlay');
+const toggleBtn = document.getElementById('sidebarToggle');
+
+function openSidebar()  { sidebar.classList.add('open');  overlay.classList.add('open');  }
+function closeSidebar() { sidebar.classList.remove('open'); overlay.classList.remove('open'); }
+
+if (toggleBtn) toggleBtn.addEventListener('click', () => sidebar.classList.contains('open') ? closeSidebar() : openSidebar());
+if (overlay)   overlay.addEventListener('click', closeSidebar);
+
+// Auto-close on nav link click (mobile)
+document.querySelectorAll('.sidebar-nav-item[href]').forEach(a => {
+  a.addEventListener('click', () => { if (window.innerWidth <= 768) closeSidebar(); });
+});
+</script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

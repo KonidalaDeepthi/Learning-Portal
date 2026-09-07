@@ -1,0 +1,33 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Create Course{% endblock %}
+{% block page_title %}Create Course{% endblock %}
+
+{% block page_content %}
+<div style="max-width:600px;">
+  <div style="margin-bottom:1.5rem;">
+    <a href="{{ url_for('mentor.courses') }}" style="color:var(--text-muted);font-size:0.875rem;text-decoration:none;">
+      <i class="bi bi-arrow-left"></i> Back to Courses
+    </a>
+  </div>
+  <div class="card">
+    <div class="card-header"><i class="bi bi-plus-circle" style="color:var(--primary)"></i> New Course</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('mentor.create_course') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="form-group">
+          <label class="form-label">Course Name *</label>
+          <input type="text" name="name" class="form-control" placeholder="e.g. Python Full Stack" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Description</label>
+          <textarea name="description" class="form-control" rows="4" placeholder="Describe what students will learn in this course..."></textarea>
+        </div>
+        <div style="display:flex;gap:1rem;">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-check-circle"></i> Create Course</button>
+          <a href="{{ url_for('mentor.courses') }}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

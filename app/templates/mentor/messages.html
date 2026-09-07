@@ -1,0 +1,43 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Messages{% endblock %}
+{% block page_title %}Student Messages{% endblock %}
+{% block page_content %}
+<div>
+  <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary);margin-bottom:0.5rem;">Messages</h2>
+  <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;">Private conversations with your students</p>
+
+  {% if conversations %}
+  <div style="display:flex;flex-direction:column;gap:0.75rem;">
+    {% for convo in conversations %}
+    {% set unread = convo.get_unread_count_for_mentor() %}
+    <a href="/mentor/messages/{{ convo.id }}" style="display:flex;align-items:center;gap:1rem;padding:1.1rem 1.5rem;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);text-decoration:none;transition:all 0.2s;{% if unread > 0 %}border-left:3px solid var(--primary);{% endif %}" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='none'">
+      <div style="width:44px;height:44px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;flex-shrink:0;">
+        {{ convo.student.name[0].upper() }}
+      </div>
+      <div style="flex:1;min-width:0;">
+        <div style="font-weight:{% if unread > 0 %}700{% else %}600{% endif %};color:var(--text-primary);">{{ convo.student.name }}</div>
+        <div style="font-size:0.78rem;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ convo.student.email }}</div>
+        {% if convo.latest_message %}
+        <div style="font-size:0.78rem;color:var(--text-secondary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:0.25rem;">{{ convo.latest_message.content }}</div>
+        {% endif %}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:0.3rem;">
+        {% if convo.latest_message %}
+        <span style="font-size:0.72rem;color:var(--text-muted);">{{ convo.latest_message.created_at.strftime('%I:%M %p · %b %d') }}</span>
+        {% endif %}
+        {% if unread > 0 %}
+        <span style="background:var(--primary);color:white;font-size:0.72rem;font-weight:700;padding:0.15rem 0.55rem;border-radius:var(--radius-full);">{{ unread }}</span>
+        {% endif %}
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card"><div class="card-body empty-state" style="padding:3rem;">
+    <div class="empty-state-icon">💬</div>
+    <h3>No conversations yet</h3>
+    <p>When students message you, their conversations will appear here.</p>
+  </div></div>
+  {% endif %}
+</div>
+{% endblock %}

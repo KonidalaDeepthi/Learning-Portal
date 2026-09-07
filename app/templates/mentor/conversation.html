@@ -1,0 +1,196 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Conversation with {{ convo.student.name }}{% endblock %}
+{% block page_title %}Conversation — {{ convo.student.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .msg-bubble {
+    max-width: 72%;
+    padding: 0.75rem 1rem;
+    border-radius: 16px;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+  .msg-left .msg-bubble {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-bottom-left-radius: 4px;
+  }
+  .msg-right .msg-bubble {
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    color: white;
+    border-bottom-right-radius: 4px;
+  }
+  .msg-meta {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-top: 0.25rem;
+  }
+  .msg-right .msg-meta { text-align: right; }
+  .chat-send-area textarea:focus { outline: none; box-shadow: none; border-color: var(--primary); }
+</style>
+{% endblock %}
+
+{% block page_content %}
+
+<!-- Back -->
+<div style="margin-bottom:1.5rem;">
+  <a href="{{ url_for('mentor.messages') }}"
+     style="color:var(--text-muted);font-size:0.875rem;text-decoration:none;display:inline-flex;align-items:center;gap:0.4rem;">
+    <i class="bi bi-arrow-left"></i> Back to Messages
+  </a>
+</div>
+
+<!-- 2-column layout -->
+<div style="display:grid;grid-template-columns:300px 1fr;gap:1.5rem;align-items:start;">
+
+  <!-- ════════════════════════════════
+       LEFT — Student Info
+  ════════════════════════════════ -->
+  <div>
+
+    <!-- Profile card -->
+    <div class="card" style="margin-bottom:1rem;">
+      <div class="card-body" style="text-align:center;padding:1.75rem 1.25rem;">
+        <div style="width:64px;height:64px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1.75rem;font-weight:800;margin:0 auto 1rem;">
+          {{ convo.student.name[0].upper() }}
+        </div>
+        <div style="font-size:1.05rem;font-weight:800;color:var(--text-primary);">{{ convo.student.name }}</div>
+        <div style="font-size:0.8rem;color:var(--text-muted);margin:0.2rem 0 0.75rem;">{{ convo.student.email }}</div>
+        <span class="badge badge-{{ 'success' if convo.student.is_active else 'danger' }}">
+          {{ 'Active' if convo.student.is_active else 'Inactive' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Enrolled Courses card -->
+    <div class="card">
+      <div class="card-header" style="display:flex;align-items:center;gap:0.5rem;">
+        <i class="bi bi-book" style="color:var(--primary);"></i>
+        <span>Enrolled Courses</span>
+      </div>
+      <div class="card-body" style="padding:0.75rem 1rem;">
+        {% set student_courses = convo.student.get_enrolled_courses() %}
+        {% if student_courses %}
+          {% for course in student_courses %}
+          <div style="display:flex;align-items:center;gap:0.6rem;padding:0.55rem 0;{% if not loop.last %}border-bottom:1px solid var(--border);{% endif %}">
+            <div style="width:8px;height:8px;background:var(--success);border-radius:50%;flex-shrink:0;"></div>
+            <span style="font-size:0.82rem;font-weight:500;color:var(--text-primary);">{{ course.name }}</span>
+          </div>
+          {% endfor %}
+        {% else %}
+          <p style="font-size:0.82rem;color:var(--text-muted);margin:0.25rem 0;">Not enrolled in any course.</p>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ════════════════════════════════
+       RIGHT — Chat Window
+  ════════════════════════════════ -->
+  <div class="card" style="display:flex;flex-direction:column;">
+
+    <!-- Chat header -->
+    <div style="padding:1rem 1.25rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:0.75rem;">
+      <div style="width:40px;height:40px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1rem;flex-shrink:0;">
+        {{ convo.student.name[0].upper() }}
+      </div>
+      <div>
+        <div style="font-weight:700;color:var(--text-primary);font-size:0.95rem;">{{ convo.student.name }}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">{{ convo.student.email }}</div>
+        <div style="font-size:0.75rem;color:var(--text-muted);">
+          <i class="bi bi-lock-fill" style="font-size:0.65rem;"></i> Private Conversation
+        </div>
+      </div>
+      <div style="margin-left:auto;">
+        <span style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.75rem;color:var(--success);">
+          <span style="width:7px;height:7px;background:var(--success);border-radius:50%;display:inline-block;"></span>
+          {{ messages|length }} message{{ 's' if messages|length != 1 else '' }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Message area -->
+    <div id="messageArea"
+         style="height:450px;overflow-y:auto;padding:1.25rem;display:flex;flex-direction:column;gap:1rem;">
+
+      {% if messages %}
+        {% for message in messages %}
+
+          {% if message.sender_id == current_user.id %}
+          <!-- Mentor message: aligned LEFT -->
+          <div class="msg-left" style="display:flex;flex-direction:column;align-items:flex-start;">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--primary);margin-bottom:0.2rem;padding-left:0.25rem;">
+              {{ current_user.name }}
+            </div>
+            <div class="msg-bubble">{{ message.content }}</div>
+            <div class="msg-meta">
+              Mentor/Admin &nbsp;·&nbsp;
+              {{ message.created_at.strftime('%b %d, %H:%M') if message.created_at else '' }}
+            </div>
+          </div>
+
+          {% else %}
+          <!-- Student message: aligned RIGHT -->
+          <div class="msg-right" style="display:flex;flex-direction:column;align-items:flex-end;">
+            <div style="font-size:0.72rem;font-weight:600;color:var(--primary);margin-bottom:0.2rem;padding-right:0.25rem;">
+              {{ convo.student.name }}
+            </div>
+            <div class="msg-bubble">{{ message.content }}</div>
+            <div class="msg-meta">
+              {{ message.created_at.strftime('%b %d, %H:%M') if message.created_at else '' }}
+            </div>
+          </div>
+          {% endif %}
+
+        {% endfor %}
+
+      {% else %}
+        <!-- Empty state -->
+        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:2rem;">
+          <div style="font-size:3rem;margin-bottom:0.75rem;">💬</div>
+          <div style="font-weight:700;color:var(--text-primary);font-size:1rem;margin-bottom:0.35rem;">No messages yet</div>
+          <div style="color:var(--text-muted);font-size:0.85rem;">Start the conversation by sending a message below.</div>
+        </div>
+      {% endif %}
+
+    </div>
+
+    <!-- Reply form -->
+    <div class="chat-send-area" style="padding:1rem 1.25rem;border-top:1px solid var(--border);">
+      <form method="POST" action="/mentor/messages/{{ convo.id }}/send"
+            style="display:flex;gap:0.75rem;align-items:flex-end;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div style="flex:1;">
+          <textarea name="content" rows="3" class="form-control chat-input"
+                    placeholder="Type your reply..."
+                    style="resize:none;border-radius:12px;font-size:0.875rem;"
+                    required></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary"
+                style="height:fit-content;padding:0.65rem 1.25rem;border-radius:12px;white-space:nowrap;">
+          <i class="bi bi-send-fill"></i> Send
+        </button>
+      </form>
+    </div>
+
+  </div>
+  <!-- end chat card -->
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  // Auto-scroll to the bottom of message area on page load
+  (function() {
+    var area = document.getElementById('messageArea');
+    if (area) {
+      area.scrollTop = area.scrollHeight;
+    }
+  })();
+</script>
+{% endblock %}

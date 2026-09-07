@@ -1,0 +1,37 @@
+# ============================================================
+# .gitignore — Files Git should NEVER track
+# ============================================================
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# Flask / SQLite database
+instance/
+*.db
+*.sqlite3
+
+# Environment variables — NEVER commit secrets!
+.env
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db

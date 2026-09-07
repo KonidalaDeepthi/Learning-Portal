@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<div class="page-wrapper">
+
+  <!-- Welcome Header -->
+  <div class="page-header" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h1 class="page-title">Welcome back, {{ current_user.name.split()[0] }}! 👋</h1>
+      <p class="page-subtitle">Here's what's happening in your learning journey today.</p>
+    </div>
+    <div style="text-align:right; color:var(--text-muted); font-size:0.85rem;">
+      <i class="bi bi-calendar3"></i>
+      {{ now.strftime('%B %d, %Y') if now else '' }}
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="grid-4" style="margin-bottom: 2rem;">
+    <div class="stat-card">
+      <div class="stat-number">{{ enrolled_courses | length }}</div>
+      <div class="stat-label">Courses Enrolled</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ completed_quizzes }}</div>
+      <div class="stat-label">Quizzes Completed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ average_quiz_score ~ '%' if average_quiz_score is not none else '—' }}</div>
+      <div class="stat-label">Avg Quiz Score</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">{{ unread_count }}</div>
+      <div class="stat-label">New Notifications</div>
+    </div>
+  </div>
+
+  <div style="display:grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+
+    <!-- Left Column -->
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+      <!-- My Courses -->
+      <div class="card">
+        <div class="card-header" style="display:flex; align-items:center; justify-content:space-between;">
+          <span><i class="bi bi-book" style="color:var(--primary)"></i> My Courses</span>
+          <a href="{{ url_for('student.courses') }}" style="font-size:0.8rem;">View all →</a>
+        </div>
+        <div class="card-body">
+          {% if enrolled_courses %}
+          <div style="display:flex; flex-direction:column; gap:1rem;">
+            {% for course in enrolled_courses %}
+            <a href="{{ url_for('student.course_detail', course_id=course.id) }}" class="course-card">
+              <div class="course-card-banner" style="background: linear-gradient(90deg,
+                {% if loop.index == 1 %}#6366f1, #06b6d4{% else %}#7c3aed, #ec4899{% endif %});"></div>
+              <div class="course-card-body">
+                <div class="course-badge">
+                  <i class="bi bi-mortarboard"></i>
+                  {% if loop.index == 1 %}Python{% else %}Gen AI{% endif %}
+                </div>
+                <div style="font-weight:700; color:var(--text-primary); margin-bottom:0.25rem;">{{ course.name }}</div>
+                <div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:0.75rem;">{{ course.description[:80] ~ '...' if course.description and course.description|length > 80 else course.description }}</div>
+                <div class="progress-bar-track">
+                  <div class="progress-bar-fill" style="width: 0%"></div>
+                </div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.35rem;">Progress: Just started</div>
+              </div>
+            </a>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="empty-state">
+            <div class="empty-state-icon">📚</div>
+            <h3>No courses yet</h3>
+            <p>Your mentor will assign you to courses. Check back soon!</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right Column -->
+    <div style="display:flex; flex-direction:column; gap:1.5rem;">
+
+      <!-- Today's Update -->
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-megaphone" style="color:var(--accent)"></i> Latest Updates
+        </div>
+        <div class="card-body">
+          {% if updates %}
+          {% for update in updates %}
+          <div style="padding-bottom: 1rem; {% if not loop.last %}border-bottom: 1px solid var(--border); margin-bottom: 1rem;{% endif %}">
+            <div style="font-weight: 600; color:var(--text-primary); margin-bottom:0.4rem;">{{ update.title }}</div>
+            <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.6;">{{ update.content[:150] ~ '...' if update.content|length > 150 else update.content }}</div>
+            <div style="font-size:0.73rem; color:var(--text-muted); margin-top:0.5rem;">
+              <i class="bi bi-clock"></i> {{ update.created_at.strftime('%b %d') }}
+            </div>
+          </div>
+          {% endfor %}
+          {% else %}
+          <div class="empty-state" style="padding: 1.5rem 1rem;">
+            <div style="font-size:1.5rem; margin-bottom:0.5rem;">📋</div>
+            <p style="font-size:0.85rem;">No updates yet</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Quick Links -->
+      <div class="card">
+        <div class="card-header">
+          <i class="bi bi-lightning" style="color:var(--warning)"></i> Quick Actions
+        </div>
+        <div class="card-body" style="display:flex; flex-direction:column; gap:0.5rem;">
+          <a href="{{ url_for('student.courses') }}" class="btn btn-outline"
+             style="justify-content:flex-start; gap:0.75rem;">
+            <i class="bi bi-book"></i> View My Courses
+          </a>
+          <a href="{{ url_for('student.chat') }}" class="btn btn-outline"
+             style="justify-content:flex-start; gap:0.75rem;">
+            <i class="bi bi-chat-dots"></i> Chat with Mentor
+          </a>
+          <a href="{{ url_for('student.progress') }}" class="btn btn-outline"
+             style="justify-content:flex-start; gap:0.75rem;">
+            <i class="bi bi-bar-chart"></i> View Progress
+          </a>
+          <a href="{{ url_for('student.account') }}" class="btn btn-outline"
+             style="justify-content:flex-start; gap:0.75rem;">
+            <i class="bi bi-gear"></i> Account Settings
+          </a>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  @media (max-width: 768px) {
+    div[style*="grid-template-columns: 2fr 1fr"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+</style>
+{% endblock %}

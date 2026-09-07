@@ -1,0 +1,57 @@
+{% extends "mentor/base_mentor.html" %}
+{% block title %}Create Quiz{% endblock %}
+{% block page_title %}Create Quiz{% endblock %}
+{% block page_content %}
+<div style="max-width:700px;">
+  <div class="card">
+    <div class="card-header"><i class="bi bi-patch-question" style="color:var(--accent)"></i> New Quiz</div>
+    <div class="card-body">
+      <form method="POST" action="{{ url_for('mentor.create_quiz') }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+          <label class="form-label">Quiz Title *</label>
+          <input type="text" name="title" class="form-control" placeholder="e.g. Python Basics Week 1" required autofocus>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Description <span style="color:var(--text-muted);font-size:0.8rem;">(optional)</span></label>
+          <textarea name="description" class="form-control" rows="3" placeholder="What is this quiz about?"></textarea>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+          <div class="form-group">
+            <label class="form-label">Course *</label>
+            <select name="course_id" class="form-control" required>
+              <option value="">— Select course —</option>
+              {% for course in courses %}
+              <option value="{{ course.id }}">{{ course.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Time Limit (minutes)</label>
+            <input type="number" name="time_limit_minutes" class="form-control" value="0" min="0" max="180" placeholder="0 = unlimited">
+            <div style="font-size:0.75rem;color:var(--text-muted);margin-top:0.3rem;">Set 0 for no time limit</div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:1rem;margin-top:1rem;">
+          <button type="submit" class="btn btn-primary"><i class="bi bi-plus-circle"></i> Create Quiz &amp; Add Questions</button>
+          <a href="{{ url_for('mentor.quizzes') }}" class="btn btn-outline">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:1rem;">
+    <div class="card-body" style="padding:1rem 1.5rem;">
+      <p style="margin:0;font-size:0.875rem;color:var(--text-muted);">
+        <i class="bi bi-info-circle" style="color:var(--primary)"></i>
+        After creating the quiz, you will be taken to the quiz page where you can add MCQ questions.
+        The quiz will be in <strong>Draft</strong> mode — students can't see it until you publish it.
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}
