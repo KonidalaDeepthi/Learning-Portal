@@ -123,6 +123,15 @@ def create_app(config_name='default'):
     # ----------------------------------------------------------
     with app.app_context():
         inspector = inspect(db.engine)
+        if 'users' in inspector.get_table_names():
+            user_columns = {column['name'] for column in inspector.get_columns('users')}
+            with db.engine.begin() as connection:
+                if 'password_hash' not in user_columns:
+                    connection.execute(text("ALTER TABLE users ADD COLUMN password_hash VARCHAR(256) DEFAULT 'EMAIL_ONLY_AUTH'"))
+                elif db.engine.dialect.name == 'postgresql':
+                    connection.execute(text("ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL"))
+                    connection.execute(text("ALTER TABLE users ALTER COLUMN password_hash SET DEFAULT 'EMAIL_ONLY_AUTH'"))
+                    connection.execute(text("UPDATE users SET password_hash = 'EMAIL_ONLY_AUTH' WHERE password_hash IS NULL"))
         if 'videos' in inspector.get_table_names():
             video_columns = {column['name'] for column in inspector.get_columns('videos')}
             if 'day_number' not in video_columns:
@@ -346,7 +355,8 @@ def _seed_initial_data():
             email=admin_email,
             role='MENTOR_ADMIN',
             is_active=True,
-            theme_preference='dark'
+            theme_preference='dark',
+            password_hash='EMAIL_ONLY_AUTH'
         )
         db.session.add(admin)
         db.session.flush()
@@ -354,6 +364,8 @@ def _seed_initial_data():
         admin.name = 'Konidala Deepthi'
         admin.role = 'MENTOR_ADMIN'
         admin.is_active = True
+        if not admin.password_hash:
+            admin.password_hash = 'EMAIL_ONLY_AUTH'
 
     # Enroll Mentor/Admin in BOTH courses so she can access the Student Portal as well
     for course in [py_course, gen_course]:
@@ -379,7 +391,7 @@ def _seed_initial_data():
         s_email = normalize_email(s_email)
         student = User.query.filter_by(email=s_email).first()
         if not student:
-            student = User(name=s_name, email=s_email, role='STUDENT', is_active=True)
+            student = User(name=s_name, email=s_email, role='STUDENT', is_active=True, password_hash='EMAIL_ONLY_AUTH')
             db.session.add(student)
             db.session.flush()
 

@@ -28,6 +28,7 @@ def create_student_account(name, email, course):
             role='STUDENT',
             is_active=True,
             theme_preference='light',
+            password_hash='EMAIL_ONLY_AUTH',
         )
         db.session.add(student)
         db.session.flush()

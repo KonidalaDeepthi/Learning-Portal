@@ -29,7 +29,7 @@ class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(150), unique=True, nullable=False, index=True)
-    password_hash = db.Column(db.String(256), nullable=True)  # Legacy optional column
+    password_hash = db.Column(db.String(256), nullable=True, default='EMAIL_ONLY_AUTH')  # Legacy optional column
     role = db.Column(db.String(20), nullable=False, default='STUDENT')
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     theme_preference = db.Column(db.String(10), default='light', nullable=False)
