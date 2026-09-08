@@ -968,6 +968,10 @@ h3[style*="font-size"] {
   margin-top: auto;
   padding: 1rem 1.5rem;
   border-top: 1px solid rgba(255,255,255,0.08);
+  position: sticky;
+  bottom: 0;
+  z-index: 1;
+  background: var(--sidebar-bg);
 }
 
 @media (max-width: 768px) {
