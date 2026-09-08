@@ -36,7 +36,6 @@ def seed_admin():
     """
     from app.models.user import User
     from app.models.course import Course
-    from werkzeug.security import generate_password_hash
     import os
 
     print("\n========================================")
@@ -46,12 +45,10 @@ def seed_admin():
 
     # --- Create MENTOR_ADMIN ---
     admin_email = app.config.get('MENTOR_ADMIN_EMAIL')
-    admin_password = app.config.get('MENTOR_ADMIN_PASSWORD')
     admin_name = app.config.get('MENTOR_ADMIN_NAME')
 
-    if not all([admin_email, admin_password, admin_name]):
-        print("❌ ERROR: MENTOR_ADMIN_EMAIL, MENTOR_ADMIN_PASSWORD, and")
-        print("   MENTOR_ADMIN_NAME must be set in your .env file.")
+    if not all([admin_email, admin_name]):
+        print("❌ ERROR: MENTOR_ADMIN_EMAIL and MENTOR_ADMIN_NAME must be set in your .env file.")
         return
 
     existing_admin = User.query.filter_by(email=admin_email).first()
@@ -64,7 +61,6 @@ def seed_admin():
         admin = User(
             name=admin_name,
             email=admin_email,
-            password_hash=generate_password_hash(admin_password),
             role='mentor_admin',
             is_active=True,
             theme_preference='dark'

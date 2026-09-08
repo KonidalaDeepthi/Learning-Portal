@@ -5,7 +5,6 @@ from app.extensions import db
 from app.models.course import CourseEnrollment
 from app.models.pending_assignment import PendingCourseAssignment
 from app.models.user import User
-from werkzeug.security import generate_password_hash
 
 
 def normalize_email(email):
@@ -13,12 +12,12 @@ def normalize_email(email):
     return (email or '').strip().lower()
 
 
-def create_student_account(name, email, password, course):
-    """Create or repair a student account without changing an existing password."""
+def create_student_account(name, email, course):
+    """Create or repair an email-authenticated student account."""
     normalized_email = normalize_email(email)
     student = User.query.filter_by(email=normalized_email).first()
 
-    if student and student.role != 'student':
+    if student and not student.is_student:
         return 'not_student', student
 
     created = student is None
@@ -26,8 +25,7 @@ def create_student_account(name, email, password, course):
         student = User(
             name=name.strip(),
             email=normalized_email,
-            password_hash=generate_password_hash(password),
-            role='student',
+            role='STUDENT',
             is_active=True,
             theme_preference='light',
         )
@@ -45,11 +43,6 @@ def create_student_account(name, email, password, course):
     else:
         enrollment.is_active = True
 
-    PendingCourseAssignment.query.filter_by(
-        email=normalized_email,
-        course_id=course.id,
-        is_active=True,
-    ).update({'is_active': False}, synchronize_session=False)
     return 'created' if created else 'existing', student
 
 
@@ -58,8 +51,9 @@ def assign_course_by_email(email, course, assigned_by):
     normalized_email = normalize_email(email)
     student = User.query.filter_by(email=normalized_email).first()
 
-    if student and student.role != 'student':
+    if student and not student.is_student:
         return 'not_student', student
+
 
     if student:
         enrollment = CourseEnrollment.query.filter_by(

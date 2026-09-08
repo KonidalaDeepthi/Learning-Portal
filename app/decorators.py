@@ -30,25 +30,10 @@ from flask_login import current_user
 def mentor_admin_required(f):
     """
     Decorator that ensures only MENTOR_ADMIN can access a route.
-    
-    How it works:
-    1. Checks if the current user's role is 'mentor_admin'
-    2. If YES → allows the route function to run normally
-    3. If NO  → returns 403 Forbidden immediately
-    
-    Note: Flask-Login's @login_required must ALSO be used to
-    ensure the user is logged in first. Use both decorators:
-    
-        @login_required
-        @mentor_admin_required
-        def my_route():
-            ...
     """
-    @wraps(f)  # Preserves the original function's name and docstring
+    @wraps(f)
     def decorated_function(*args, **kwargs):
-        # Check the role stored in the database, NOT the URL or form data
-        if not current_user.is_authenticated or current_user.role != 'mentor_admin':
-            # 403 = "You are logged in but not allowed here"
+        if not current_user.is_authenticated or not current_user.is_mentor_admin:
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
@@ -56,16 +41,13 @@ def mentor_admin_required(f):
 
 def student_required(f):
     """
-    Decorator ensuring only STUDENTS can access a route.
-    Redirects MENTOR_ADMIN to their dashboard.
-    
-    This prevents the mentor from accidentally using student pages.
+    Decorator ensuring only STUDENTS or MENTOR_ADMIN can access student portal routes.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not current_user.is_authenticated:
             return redirect(url_for('auth.login'))
-        if current_user.role not in {'student', 'mentor_admin'}:
+        if not (current_user.is_student or current_user.is_mentor_admin):
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
@@ -75,18 +57,11 @@ def enrolled_in_course(f):
     """
     Decorator for course-specific routes.
     Verifies the student is actively enrolled in the course_id from the URL.
-    
-    Usage (route must have course_id parameter):
-        @app.route('/course/<int:course_id>')
-        @login_required
-        @enrolled_in_course
-        def course_page(course_id):
-            ...
+    MENTOR_ADMIN has open access to all courses.
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        # MENTOR_ADMIN can access all courses without enrollment
-        if current_user.role == 'mentor_admin':
+        if current_user.is_mentor_admin:
             return f(*args, **kwargs)
 
         course_id = kwargs.get('course_id')
@@ -95,3 +70,4 @@ def enrolled_in_course(f):
             abort(403)
         return f(*args, **kwargs)
     return decorated_function
+

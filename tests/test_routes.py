@@ -7,7 +7,6 @@ sys.path.insert(0, 'd:/Mentor')
 from app import create_app
 from app.extensions import db
 from app.models.user import User
-from werkzeug.security import generate_password_hash
 import re
 
 app = create_app('development')
@@ -23,8 +22,7 @@ with app.app_context():
         student = User(
             name='Test Student',
             email='teststudent@test.com',
-            password_hash=generate_password_hash('Password123!'),
-            role='student',
+            role='STUDENT',
             is_active=True
         )
         db.session.add(student)
@@ -56,9 +54,7 @@ with app.test_client() as c:
 
         # ── Mentor admin login → dashboard ──
         admin_email = app.config['MENTOR_ADMIN_EMAIL']
-        admin_pass  = app.config['MENTOR_ADMIN_PASSWORD']
-        
-        r = c.post('/login', data={'email': admin_email, 'password': admin_pass})
+        r = c.post('/login', data={'email': admin_email})
         assert r.status_code == 302
         assert 'mentor/dashboard' in r.headers.get('Location', '')
         print(f"✓ Mentor login → redirects to /mentor/dashboard")
@@ -85,7 +81,7 @@ with app.test_client() as c:
         print("✓ After logout, /mentor/dashboard redirects again")
 
         # ── Student login ──
-        r = c.post('/login', data={'email': 'teststudent@test.com', 'password': 'Password123!'})
+        r = c.post('/login', data={'email': 'teststudent@test.com'})
         assert r.status_code == 302
         assert 'home' in r.headers.get('Location', '')
         print("✓ Student login → redirects to /home")
@@ -109,10 +105,11 @@ with app.test_client() as c:
         assert '/login' in c.get('/home').headers.get('Location', '')
         print("✓ Student one-click logout clears the session")
 
-        # ── Wrong password → stays on login ──
-        r = c.post('/login', data={'email': admin_email, 'password': 'wrongpassword'})
+        # ── Unknown email → stays on login ──
+        r = c.post('/login', data={'email': 'unknown@example.com'})
         assert r.status_code == 200  # stays on login page
-        print("✓ Wrong password → stays on login page (200)")
+        assert b'This email is not registered' in r.data
+        print("✓ Unknown email → stays on login page (200)")
 
 print()
 print("=" * 52)
@@ -121,4 +118,3 @@ print("=" * 52)
 print()
 print(f"  🌐 Open browser: http://127.0.0.1:5000")
 print(f"  👤 Mentor email: {app.config['MENTOR_ADMIN_EMAIL']}")
-print(f"  🔑 Password: (from your .env file)")

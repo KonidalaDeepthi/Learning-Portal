@@ -56,7 +56,6 @@ class Config:
     # admin account. They are never shown to users.
     # ----------------------------------------------------------
     MENTOR_ADMIN_EMAIL = os.environ.get('MENTOR_ADMIN_EMAIL')
-    MENTOR_ADMIN_PASSWORD = os.environ.get('MENTOR_ADMIN_PASSWORD')
     MENTOR_ADMIN_NAME = os.environ.get('MENTOR_ADMIN_NAME')
 
     SUPPORT_EMAIL = os.environ.get('SUPPORT_EMAIL') or 'neoskillzinfo@gmail.com'

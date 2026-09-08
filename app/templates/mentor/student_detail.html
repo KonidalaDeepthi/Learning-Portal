@@ -134,16 +134,6 @@
         </form>
       </div>
 
-      <div style="padding:1rem 1.25rem;border-top:1px solid var(--border);">
-        <form method="POST" action="{{ url_for('mentor.reset_student_password', student_id=student.id) }}">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-          <label class="form-label">RESET PASSWORD</label>
-          <input type="password" name="password" class="form-control" minlength="8" required>
-          <button type="submit" class="btn btn-outline" style="width:100%;margin-top:0.75rem;font-size:0.85rem;">
-            <i class="bi bi-key"></i> Reset Password
-          </button>
-        </form>
-      </div>
     </div>
 
     <!-- Enrolled Courses Card -->

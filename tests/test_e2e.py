@@ -20,10 +20,10 @@ with app.app_context():
     from app.models.announcement import Announcement
 
     course  = Course.query.first()
-    mentor  = User.query.filter_by(role='mentor_admin').first()
-    student = User.query.filter_by(email='teststudent@test.com').first()
+    mentor  = User.query.filter(User.role.in_(['MENTOR_ADMIN', 'mentor_admin'])).first()
+    student = User.query.filter_by(email='yasaswinigurijala1982@gmail.com').first()
     if student is None:
-        student = User.query.filter_by(role='student').first()
+        student = User.query.filter(User.role.in_(['STUDENT', 'student'])).first()
 
     student_email = student.email
     student_id    = student.id
@@ -77,7 +77,7 @@ with app.test_client() as c:
         questions = QuizQuestion.query.filter_by(quiz_id=quiz_id).all()
         q_ids = [q.id for q in questions]
 
-        c.post('/login', data={'email': mentor_email, 'password': app.config['MENTOR_ADMIN_PASSWORD']})
+        c.post('/login', data={'email': mentor_email})
 
         # ── MENTOR: send announcement ──
         r = c.post('/mentor/announcements/send', data={
@@ -106,7 +106,7 @@ with app.test_client() as c:
         c.get('/logout')
 
         # ── STUDENT: quiz start ──
-        c.post('/login', data={'email': student_email, 'password': 'Password123!'})
+        c.post('/login', data={'email': student_email})
 
         r = c.get(f'/quiz/{quiz_id}/start')
         assert r.status_code == 200, f"Quiz start failed: {r.status_code}"
@@ -171,7 +171,7 @@ with app.test_client() as c:
         c.get('/logout')
 
         # ── MENTOR: see conversation ──
-        c.post('/login', data={'email': mentor_email, 'password': app.config['MENTOR_ADMIN_PASSWORD']})
+        c.post('/login', data={'email': mentor_email})
         r = c.get('/mentor/messages')
         assert r.status_code == 200
         html = r.data.decode('utf-8')
@@ -190,4 +190,4 @@ print("=" * 52)
 print()
 print("  Open: http://127.0.0.1:5000")
 print(f"  Mentor: {app.config['MENTOR_ADMIN_EMAIL']}")
-print("  Student: teststudent@test.com / Password123!")
+print("  Student: teststudent@test.com")

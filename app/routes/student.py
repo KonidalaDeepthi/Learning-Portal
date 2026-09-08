@@ -63,7 +63,7 @@ def home():
     ).order_by(Quiz.created_at.desc()).limit(5).all()
 
     # Unread message count
-    mentor = User.query.filter_by(role='mentor_admin').first()
+    mentor = User.query.filter(User.role.in_(['MENTOR_ADMIN', 'mentor_admin'])).first()
     convo = Conversation.query.filter_by(
         student_id=current_user.id,
         mentor_id=mentor.id if mentor else 0
@@ -415,7 +415,7 @@ def chat():
     from app.models.announcement import Notification
     from app.models.user import User
 
-    mentor = User.query.filter_by(role='mentor_admin').first()
+    mentor = User.query.filter(User.role.in_(['MENTOR_ADMIN', 'mentor_admin'])).first()
     convo = Conversation.query.filter_by(
         student_id=current_user.id,
         mentor_id=mentor.id if mentor else 0
@@ -460,7 +460,7 @@ def chat_send():
         flash('Message cannot be empty.', 'danger')
         return redirect(url_for('student.chat'))
 
-    mentor = User.query.filter_by(role='mentor_admin').first()
+    mentor = User.query.filter(User.role.in_(['MENTOR_ADMIN', 'mentor_admin'])).first()
     if not mentor:
         flash('Mentor not available.', 'warning')
         return redirect(url_for('student.chat'))
@@ -517,8 +517,6 @@ def profile():
 @login_required
 @student_required
 def account():
-    from werkzeug.security import check_password_hash, generate_password_hash
-
     if request.method == 'POST':
         action = request.form.get('action')
 
@@ -530,22 +528,6 @@ def account():
                 current_user.name = name
                 db.session.commit()
                 flash('Name updated successfully!', 'success')
-
-        elif action == 'change_password':
-            current_pw  = request.form.get('current_password', '')
-            new_pw      = request.form.get('new_password', '')
-            confirm_pw  = request.form.get('confirm_password', '')
-
-            if not check_password_hash(current_user.password_hash, current_pw):
-                flash('Current password is incorrect.', 'danger')
-            elif len(new_pw) < 8:
-                flash('New password must be at least 8 characters.', 'danger')
-            elif new_pw != confirm_pw:
-                flash('Passwords do not match.', 'danger')
-            else:
-                current_user.password_hash = generate_password_hash(new_pw)
-                db.session.commit()
-                flash('Password changed successfully!', 'success')
 
         return redirect(url_for('student.account'))
 

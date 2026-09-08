@@ -28,15 +28,15 @@ def dashboard():
     from app.models.video import Video
     from datetime import timedelta
 
-    total_students   = User.query.filter_by(role='student').count()
-    active_students  = User.query.filter_by(role='student', is_active=True).count()
+    total_students   = User.query.filter(User.role.in_(['STUDENT', 'student'])).count()
+    active_students  = User.query.filter(User.role.in_(['STUDENT', 'student']), User.is_active.is_(True)).count()
     total_courses    = Course.query.filter_by(status='active').count()
     total_quizzes    = Quiz.query.filter_by(status='published').count()
     total_attempts   = QuizAttempt.query.count()
     total_videos     = Video.query.filter_by(status='published').count()
 
     courses         = Course.query.all()
-    recent_students = User.query.filter_by(role='student').order_by(
+    recent_students = User.query.filter(User.role.in_(['STUDENT', 'student'])).order_by(
         User.created_at.desc()).limit(5).all()
     recent_attempts = QuizAttempt.query.filter(
         QuizAttempt.submitted_at.isnot(None)
@@ -84,7 +84,7 @@ def students():
     search      = request.args.get('search', '').strip().lower()
     course_filter = request.args.get('course_id', '')
 
-    query = User.query.filter_by(role='student')
+    query = User.query.filter(User.role.in_(['STUDENT', 'student']))
     if search:
         query = query.filter(
             db.or_(User.name.ilike(f'%{search}%'),
@@ -115,7 +115,6 @@ def create_student():
 
     name = request.form.get('name', '').strip()
     email = normalize_email(request.form.get('email', ''))
-    password = request.form.get('password', '')
     course_id = request.form.get('course_id', type=int)
     course = Course.query.filter_by(id=course_id, status='active').first() if course_id else None
 
@@ -123,13 +122,11 @@ def create_student():
         flash('Please enter the student name.', 'danger')
     elif not email or '@' not in email or ' ' in email:
         flash('Please enter a valid student email.', 'danger')
-    elif len(password) < 8:
-        flash('Password must be at least 8 characters long.', 'danger')
     elif not course:
         flash('Please select an active course.', 'danger')
     else:
         try:
-            result, student = create_student_account(name, email, password, course)
+            result, student = create_student_account(name, email, course)
             if result == 'not_student':
                 db.session.rollback()
                 flash('This email belongs to a non-student account.', 'warning')
@@ -187,7 +184,7 @@ def assign_student_to_course():
 def student_detail(student_id):
     from app.models.user import User
     from app.models.quiz import QuizAttempt
-    student  = User.query.filter_by(id=student_id, role='student').first_or_404()
+    student  = User.query.filter(User.id == student_id, User.role.in_(['STUDENT', 'student'])).first_or_404()
     attempts = QuizAttempt.query.filter_by(user_id=student_id).order_by(
         QuizAttempt.submitted_at.desc()).all()
     enrolled_courses = student.get_enrolled_courses()
@@ -202,33 +199,11 @@ def student_detail(student_id):
 @mentor_admin_required
 def toggle_student_active(student_id):
     from app.models.user import User
-    student = User.query.filter_by(id=student_id, role='student').first_or_404()
+    student = User.query.filter(User.id == student_id, User.role.in_(['STUDENT', 'student'])).first_or_404()
     student.is_active = not student.is_active
     db.session.commit()
     status = 'activated' if student.is_active else 'deactivated'
     flash(f'{student.name} has been {status}.', 'success')
-    return redirect(url_for('mentor.student_detail', student_id=student_id))
-
-
-@mentor_bp.route('/students/<int:student_id>/reset-password', methods=['POST'])
-@login_required
-@mentor_admin_required
-def reset_student_password(student_id):
-    from werkzeug.security import generate_password_hash
-    from app.models.user import User
-
-    student = User.query.filter_by(id=student_id, role='student').first_or_404()
-    password = request.form.get('password', '')
-    if len(password) < 8:
-        flash('Password must be at least 8 characters long.', 'danger')
-    else:
-        try:
-            student.password_hash = generate_password_hash(password)
-            db.session.commit()
-            flash('Student password has been reset.', 'success')
-        except SQLAlchemyError:
-            db.session.rollback()
-            flash('Password reset failed. No changes were made.', 'danger')
     return redirect(url_for('mentor.student_detail', student_id=student_id))
 
 
@@ -587,7 +562,7 @@ def results():
     if quiz_id:
         query = query.filter_by(quiz_id=quiz_id)
     attempts = query.order_by(QuizAttempt.submitted_at.desc()).all()
-    students = User.query.filter_by(role='student').order_by(User.name).all()
+    students = User.query.filter(User.role.in_(['STUDENT', 'student'])).order_by(User.name).all()
     quizzes_list = Quiz.query.join(Course).order_by(
         Course.name, Quiz.day_number, Quiz.id).all()
     return render_template('mentor/results.html', attempts=attempts,
@@ -776,7 +751,7 @@ def create_update():
         enrollments = CourseEnrollment.query.filter_by(course_id=course_id, is_active=True).all()
         student_ids = [e.user_id for e in enrollments]
     else:
-        students = User.query.filter_by(role='student', is_active=True).all()
+        students = User.query.filter(User.role.in_(['STUDENT', 'student']), User.is_active.is_(True)).all()
         student_ids = [s.id for s in students]
 
     for uid in student_ids:
@@ -943,7 +918,7 @@ def send_announcement():
             course_id=target_course_id, is_active=True).all()
         student_ids = [e.user_id for e in enrollments]
     else:
-        students = User.query.filter_by(role='student', is_active=True).all()
+        students = User.query.filter(User.role.in_(['STUDENT', 'student']), User.is_active.is_(True)).all()
         student_ids = [s.id for s in students]
 
     for uid in student_ids:

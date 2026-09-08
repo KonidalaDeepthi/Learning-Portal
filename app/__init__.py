@@ -179,8 +179,18 @@ def create_app(config_name='default'):
                     connection.execute(text('ALTER TABLE quiz_attempts_migrated RENAME TO quiz_attempts'))
                     connection.execute(text('PRAGMA foreign_keys=ON'))
         db.create_all()
+        _seed_initial_data()
+
+    @app.after_request
+    def add_no_cache_header(response):
+        """Prevent browser back-navigation from displaying authenticated pages after logout."""
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
 
     @app.cli.command('seed-videos')
+
     def seed_videos():
         """Replace all existing videos with the initial Python curriculum."""
         from app.models.course import Course
@@ -248,22 +258,19 @@ def create_app(config_name='default'):
     @app.cli.command('configure-mentor-admin')
     def configure_mentor_admin():
         """Create or repair only the configured Mentor/Admin account."""
-        from werkzeug.security import generate_password_hash
         from app.models.user import User
         from app.models.course import Course, CourseEnrollment
 
         email = app.config.get('MENTOR_ADMIN_EMAIL')
-        password = app.config.get('MENTOR_ADMIN_PASSWORD')
         name = app.config.get('MENTOR_ADMIN_NAME')
-        if not all([email, password, name]):
-            raise RuntimeError('MENTOR_ADMIN_EMAIL, MENTOR_ADMIN_PASSWORD, and MENTOR_ADMIN_NAME are required.')
+        if not all([email, name]):
+            raise RuntimeError('MENTOR_ADMIN_EMAIL and MENTOR_ADMIN_NAME are required.')
 
         user = User.query.filter_by(email=email).first()
         if user is None:
             user = User(email=email, name=name)
             db.session.add(user)
         user.name = name
-        user.password_hash = generate_password_hash(password)
         user.role = 'mentor_admin'
         user.is_active = True
         User.query.filter(
@@ -285,10 +292,9 @@ def create_app(config_name='default'):
     @app.cli.command('create-student')
     @click.option('--name', prompt='Student name')
     @click.option('--email', prompt='Student email')
-    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
     @click.option('--course', prompt='Course name')
-    def create_student(name, email, password, course):
-        """Create or update one student and assign an active course."""
+    def create_student(name, email, course):
+        """Create or update one email-authenticated student."""
         from app.course_access import create_student_account, normalize_email
         from app.models.course import Course
 
@@ -296,28 +302,110 @@ def create_app(config_name='default'):
         selected_course = Course.query.filter_by(name=course.strip(), status='active').first()
         if not selected_course:
             raise click.ClickException('Active course not found.')
-        result, student = create_student_account(name, email, password, selected_course)
+        result, student = create_student_account(name, email, selected_course)
         if result == 'not_student':
             raise click.ClickException('The email belongs to a non-student account.')
         db.session.commit()
         click.echo(f'Student {email} is ready with active access to {selected_course.name}.')
 
-    @app.cli.command('reset-student-password')
-    @click.option('--email', prompt='Student email')
-    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
-    def reset_student_password(email, password):
-        """Explicitly reset an existing student's password."""
-        from werkzeug.security import generate_password_hash
-        from app.course_access import normalize_email
-        from app.models.user import User
-
-        student = User.query.filter_by(
-            email=normalize_email(email), role='student').first()
-        if not student:
-            raise click.ClickException('Student account not found.')
-        student.password_hash = generate_password_hash(password)
-        student.is_active = True
-        db.session.commit()
-        click.echo(f'Password reset for {student.email}.')
-
     return app
+
+
+def _seed_initial_data():
+    """
+    Automatic, idempotent initialization of initial courses, Mentor/Admin, and student course assignments.
+    Runs automatically on app startup, ensuring compatibility with Render Free (Supabase PostgreSQL / SQLite).
+    """
+    from app.models.user import User
+    from app.models.course import Course, CourseEnrollment
+    from app.course_access import normalize_email
+
+    # 1. Ensure initial courses exist
+    py_course = Course.query.filter_by(name='Python Full Stack').first()
+    if not py_course:
+        py_course = Course(name='Python Full Stack', status='active')
+        db.session.add(py_course)
+
+    gen_course = Course.query.filter_by(name='Generative AI').first()
+    if not gen_course:
+        gen_course = Course(
+            name='Generative AI',
+            description='Explore Generative AI concepts, large language models, prompt engineering, APIs, and building AI-powered applications.',
+            status='active'
+        )
+        db.session.add(gen_course)
+
+    db.session.flush()
+
+    # 2. Ensure MENTOR_ADMIN: Konidala Deepthi (konidaladeepthi1425@gmail.com)
+    admin_email = 'konidaladeepthi1425@gmail.com'
+    admin = User.query.filter_by(email=admin_email).first()
+    if not admin:
+        admin = User(
+            name='Konidala Deepthi',
+            email=admin_email,
+            role='MENTOR_ADMIN',
+            is_active=True,
+            theme_preference='dark'
+        )
+        db.session.add(admin)
+        db.session.flush()
+    else:
+        admin.name = 'Konidala Deepthi'
+        admin.role = 'MENTOR_ADMIN'
+        admin.is_active = True
+
+    # Enroll Mentor/Admin in BOTH courses so she can access the Student Portal as well
+    for course in [py_course, gen_course]:
+        enrollment = CourseEnrollment.query.filter_by(user_id=admin.id, course_id=course.id).first()
+        if not enrollment:
+            db.session.add(CourseEnrollment(user_id=admin.id, course_id=course.id, is_active=True))
+        else:
+            enrollment.is_active = True
+
+    # 3. Existing Students & Course Assignments:
+    # Generative AI assignment rule: Yasaswini Gurijala & Satwika Reddy
+    gen_ai_emails = {
+        'yasaswinigurijala1982@gmail.com',
+        'satwikareddy359@gmail.com'
+    }
+
+    # Ensure Yasaswini Gurijala and Satwika Reddy exist if fresh DB
+    initial_generative_students = [
+        ('Yasaswini Gurijala', 'yasaswinigurijala1982@gmail.com'),
+        ('Satwika Reddy', 'satwikareddy359@gmail.com'),
+    ]
+    for s_name, s_email in initial_generative_students:
+        s_email = normalize_email(s_email)
+        student = User.query.filter_by(email=s_email).first()
+        if not student:
+            student = User(name=s_name, email=s_email, role='STUDENT', is_active=True)
+            db.session.add(student)
+            db.session.flush()
+
+    # Process all student course assignments strictly
+    all_users = User.query.all()
+    for user in all_users:
+        if user.email == admin_email:
+            continue
+        if user.role != 'STUDENT':
+            user.role = 'STUDENT'
+        
+        target_course = gen_course if user.email in gen_ai_emails else py_course
+        other_course = py_course if user.email in gen_ai_emails else gen_course
+
+        # Active enrollment for assigned target course
+        enr_target = CourseEnrollment.query.filter_by(user_id=user.id, course_id=target_course.id).first()
+        if not enr_target:
+            db.session.add(CourseEnrollment(user_id=user.id, course_id=target_course.id, is_active=True))
+        else:
+            enr_target.is_active = True
+
+        # Deactivate any non-assigned course enrollment for this student
+        enr_other = CourseEnrollment.query.filter_by(user_id=user.id, course_id=other_course.id).first()
+        if enr_other:
+            enr_other.is_active = False
+
+    db.session.commit()
+
+

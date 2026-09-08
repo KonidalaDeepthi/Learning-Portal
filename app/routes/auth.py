@@ -16,7 +16,6 @@ student routes in student.py, etc.
 
 from flask import Blueprint, render_template, redirect, url_for, flash, request, session, abort
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import check_password_hash
 from datetime import datetime
 
 from app.extensions import db
@@ -32,7 +31,7 @@ auth_bp = Blueprint('auth', __name__)
 def login():
     """
     GET  /login → Show the login form
-    POST /login → Process the submitted email + password
+    POST /login → Process the submitted email ID
     """
     # If user is already logged in, redirect to correct dashboard
     if current_user.is_authenticated:
@@ -40,28 +39,23 @@ def login():
 
     if request.method == 'POST':
         email = normalize_email(request.form.get('email', ''))
-        password = request.form.get('password', '')
-        remember = request.form.get('remember', False)
-
-        # --- Validation ---
-        if not email or not password:
-            flash('Please enter both email and password.', 'danger')
+        if not email:
+            flash('Please enter your email address.', 'danger')
             return render_template('auth/login.html')
 
-        # --- Find user in database ---
+        # --- Find user in database by normalized email ---
         user = User.query.filter_by(email=email).first()
 
-        # --- Security checks (deliberate vague message to attackers) ---
-        if not user or not check_password_hash(user.password_hash, password):
-            flash('Invalid email or password. Please try again.', 'danger')
+        if not user:
+            flash('This email is not registered. Please contact your Mentor/Admin.', 'danger')
             return render_template('auth/login.html')
 
         if not user.is_active:
             flash('Your account has been deactivated. Please contact support.', 'warning')
             return render_template('auth/login.html')
 
-        # --- All checks passed — log the user in ---
-        login_user(user, remember=bool(remember))
+        # --- All checks passed — log the user in using their actual User.id ---
+        login_user(user)
 
         # Update last login timestamp
         user.last_login = datetime.utcnow()
@@ -89,6 +83,7 @@ def register():
 @login_required
 def logout():
     logout_user()
+    flash('You have been logged out.', 'info')
     return redirect(url_for('auth.login'))
 
 
@@ -96,8 +91,9 @@ def logout():
 # Helper function
 # ----------------------------------------------------------
 def _redirect_after_login(user):
-    """Redirect user to the correct dashboard based on their role."""
-    if user.role == 'mentor_admin':
+    """Redirect user to the correct portal based on their role."""
+    if user.is_mentor_admin:
         return redirect(url_for('mentor.dashboard'))
     else:
         return redirect(url_for('student.home'))
+
