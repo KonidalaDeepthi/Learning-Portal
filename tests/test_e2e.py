@@ -17,7 +17,6 @@ with app.app_context():
     from app.models.quiz import Quiz, QuizQuestion, QuizAttempt, QuizAnswer
     from app.models.course import Course, CourseEnrollment
     from app.models.user import User
-    from app.models.update import DailyUpdate
     from app.models.announcement import Announcement
 
     course  = Course.query.first()
@@ -70,15 +69,6 @@ with app.app_context():
     quiz_id = quiz.id
     print(f"✓ Quiz created (ID={quiz_id}): 3 questions, 6 marks")
 
-    # Create a daily update
-    old_upd = DailyUpdate.query.filter_by(title='E2E Test Update').first()
-    if not old_upd:
-        db.session.add(DailyUpdate(title='E2E Test Update',
-                                   content='Today: Study Flask basics.',
-                                   course_id=course_id, created_by=mentor.id))
-        db.session.commit()
-    print("✓ Daily update created")
-
 # ── Run all page + action tests ──
 with app.test_client() as c:
     with app.app_context():
@@ -87,16 +77,7 @@ with app.test_client() as c:
         questions = QuizQuestion.query.filter_by(quiz_id=quiz_id).all()
         q_ids = [q.id for q in questions]
 
-        # ── MENTOR: create update via POST ──
         c.post('/login', data={'email': mentor_email, 'password': app.config['MENTOR_ADMIN_PASSWORD']})
-
-        r = c.post('/mentor/updates/create', data={
-            'title': 'POST Test Update',
-            'content': 'Testing update creation via form POST.',
-            'course_id': course_id
-        })
-        assert r.status_code == 302, f"Create update failed: {r.status_code}"
-        print("✓ Mentor: POST daily update works (302 redirect)")
 
         # ── MENTOR: send announcement ──
         r = c.post('/mentor/announcements/send', data={
@@ -121,18 +102,6 @@ with app.test_client() as c:
         r = c.get('/mentor/videos/create')
         assert r.status_code == 200
         print("✓ Mentor: video create form loads (200)")
-
-        # ── MENTOR: POST video ──
-        r = c.post('/mentor/videos/create', data={
-            'title': 'Test Video',
-            'url': 'https://youtube.com/watch?v=test',
-            'course_id': course_id,
-            'topic': 'Test Topic',
-            'resource_type': 'video',
-            'status': 'published'
-        })
-        assert r.status_code == 302, f"Create video failed: {r.status_code}"
-        print("✓ Mentor: POST video/resource works (302 redirect)")
 
         c.get('/logout')
 

@@ -148,10 +148,6 @@
           <i class="bi bi-chat-dots"></i>
           {% if mentor_unread_messages %}<span class="notif-badge">{{ mentor_unread_messages if mentor_unread_messages < 10 else '9+' }}</span>{% endif %}
         </a>
-        <a href="{{ url_for('auth.logout') }}" class="btn btn-outline btn-sm"
-           aria-label="Logout" title="Logout">
-          <i class="bi bi-box-arrow-right"></i> Logout
-        </a>
         <div style="display:flex;align-items:center;gap:0.5rem;">
           <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--primary),var(--accent));border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:0.85rem;">
             {{ current_user.name[0].upper() }}
