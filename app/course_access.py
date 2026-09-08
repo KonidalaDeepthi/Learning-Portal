@@ -54,7 +54,7 @@ def create_student_account(name, email, password, course):
 
 
 def assign_course_by_email(email, course, assigned_by):
-    """Assign or queue course access without creating or elevating users."""
+    """Assign course access to an existing student without changing credentials."""
     normalized_email = normalize_email(email)
     student = User.query.filter_by(email=normalized_email).first()
 
@@ -81,20 +81,7 @@ def assign_course_by_email(email, course, assigned_by):
         ).update({'is_active': False}, synchronize_session=False)
         return 'enrolled', student
 
-    pending = PendingCourseAssignment.query.filter_by(
-        email=normalized_email,
-        course_id=course.id,
-        is_active=True
-    ).first()
-    if pending is None:
-        db.session.add(PendingCourseAssignment(
-            email=normalized_email,
-            course_id=course.id,
-            assigned_by=assigned_by,
-            assigned_at=datetime.utcnow(),
-            is_active=True
-        ))
-    return 'pending', None
+    return 'not_found', None
 
 
 def fulfill_pending_assignments(student):

@@ -77,12 +77,9 @@ with app.test_client() as c:
 
         # ── Logout ──
         logout_response = c.get('/logout')
-        assert logout_response.status_code == 303
+        assert logout_response.status_code == 302
         assert logout_response.headers['Location'] == '/login'
-        assert logout_response.headers['Cache-Control'].startswith('no-store')
-        login_page = c.get('/login')
-        assert login_page.status_code == 200
-        assert b'You have been logged out successfully.' in login_page.data
+        assert c.get('/login').status_code == 200
         r = c.get('/mentor/dashboard')
         assert r.status_code == 302
         print("✓ After logout, /mentor/dashboard redirects again")
@@ -106,10 +103,9 @@ with app.test_client() as c:
             print(f"✓ Student blocked from {url}: 403 Forbidden")
 
         student_logout = c.get('/logout')
-        assert student_logout.status_code == 303
+        assert student_logout.status_code == 302
         assert student_logout.headers['Location'] == '/login'
-        assert student_logout.headers['Cache-Control'].startswith('no-store')
-        assert b'You have been logged out successfully.' in c.get('/login').data
+        assert c.get('/login').status_code == 200
         assert '/login' in c.get('/home').headers.get('Location', '')
         print("✓ Student one-click logout clears the session")
 

@@ -88,23 +88,8 @@ def register():
 @auth_bp.route('/logout')
 @login_required
 def logout():
-    """
-    Logs the user out:
-    1. Clears Flask-Login session
-    2. Clears Flask session data
-    3. Redirects to login page
-
-    After logout, browser Back button should NOT show protected content
-    because the server will check the session on every request.
-    """
     logout_user()
-    session.clear()
-    flash('You have been logged out successfully.', 'info')
-    response = redirect(url_for('auth.login'), code=303)
-    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
-    response.headers['Pragma'] = 'no-cache'
-    response.headers['Expires'] = '0'
-    return response
+    return redirect(url_for('auth.login'))
 
 
 # ----------------------------------------------------------

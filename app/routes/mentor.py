@@ -8,6 +8,7 @@ ALL routes here are protected by:
 from flask import Blueprint, render_template, redirect, url_for, flash, request, abort, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime
+from sqlalchemy.exc import SQLAlchemyError
 from app.decorators import mentor_admin_required
 from app.extensions import db
 
@@ -80,7 +81,7 @@ def dashboard():
 def students():
     from app.models.user import User
     from app.models.course import Course
-    search      = request.args.get('search', '')
+    search      = request.args.get('search', '').strip().lower()
     course_filter = request.args.get('course_id', '')
 
     query = User.query.filter_by(role='student')
@@ -127,14 +128,19 @@ def create_student():
     elif not course:
         flash('Please select an active course.', 'danger')
     else:
-        result, student = create_student_account(name, email, password, course)
-        if result == 'not_student':
-            flash('This email belongs to a non-student account.', 'warning')
-        else:
-            db.session.commit()
-            message = 'Student account created.' if result == 'created' else 'Existing student updated.'
-            flash(f'{message} Active access granted to {course.name}.', 'success')
-            return redirect(url_for('mentor.student_detail', student_id=student.id))
+        try:
+            result, student = create_student_account(name, email, password, course)
+            if result == 'not_student':
+                db.session.rollback()
+                flash('This email belongs to a non-student account.', 'warning')
+            else:
+                db.session.commit()
+                message = 'Student account created.' if result == 'created' else 'Existing student updated.'
+                flash(f'{message} Active access granted to {course.name}.', 'success')
+                return redirect(url_for('mentor.student_detail', student_id=student.id))
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash('Student account could not be saved. No changes were made.', 'danger')
 
     return redirect(url_for('mentor.students'))
 
@@ -170,11 +176,7 @@ def assign_student_to_course():
             flash(f'{email} now has active access to {course.name}.', 'success')
         else:
             db.session.commit()
-            flash(
-                'Course access assigned to this email. When the student registers '
-                'with this email, the course will appear automatically.',
-                'success'
-            )
+            flash('Student account not found. Create the student account first.', 'warning')
 
     return redirect(url_for('mentor.students', search=email))
 
@@ -220,9 +222,13 @@ def reset_student_password(student_id):
     if len(password) < 8:
         flash('Password must be at least 8 characters long.', 'danger')
     else:
-        student.password_hash = generate_password_hash(password)
-        db.session.commit()
-        flash('Student password has been reset.', 'success')
+        try:
+            student.password_hash = generate_password_hash(password)
+            db.session.commit()
+            flash('Student password has been reset.', 'success')
+        except SQLAlchemyError:
+            db.session.rollback()
+            flash('Password reset failed. No changes were made.', 'danger')
     return redirect(url_for('mentor.student_detail', student_id=student_id))
 
 
@@ -297,11 +303,7 @@ def add_student_to_course(course_id):
     elif result == 'enrolled':
         flash(f'{email} now has active access to {course.name}.', 'success')
     else:
-        flash(
-            'Course access assigned to this email. When the student registers '
-            'with this email, the course will appear automatically.',
-            'success'
-        )
+        flash('Student account not found. Create the student account first.', 'warning')
     db.session.commit()
     return redirect(url_for('mentor.course_detail', course_id=course_id))
 

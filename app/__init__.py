@@ -37,6 +37,9 @@ def create_app(config_name='default'):
     # Load configuration from config.py
     app.config.from_object(config[config_name])
 
+    if config_name == 'production' and app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite:'):
+        raise RuntimeError('Production requires DATABASE_URL; refusing to use the SQLite fallback.')
+
     # ----------------------------------------------------------
     # Initialise extensions
     # Now we connect the empty extension objects to our real app
