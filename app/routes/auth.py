@@ -14,14 +14,14 @@ This keeps the code organised — auth routes stay in auth.py,
 student routes in student.py, etc.
 """
 
-from flask import Blueprint, render_template, redirect, url_for, flash, request, session
+from flask import Blueprint, render_template, redirect, url_for, flash, request, session, abort
 from flask_login import login_user, logout_user, login_required, current_user
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash
 from datetime import datetime
 
 from app.extensions import db
 from app.models.user import User
-from app.course_access import fulfill_pending_assignments, normalize_email
+from app.course_access import normalize_email
 
 # Create the Blueprint
 # 'auth' is the name used in url_for('auth.login') etc.
@@ -81,71 +81,8 @@ def login():
 
 @auth_bp.route('/register', methods=['GET', 'POST'])
 def register():
-    """
-    GET  /register → Show registration form
-    POST /register → Create a new STUDENT account
-
-    IMPORTANT: This ALWAYS creates a STUDENT account.
-    The MENTOR_ADMIN account is created via 'flask seed-admin'.
-    """
-    # Already logged in? Redirect appropriately.
-    if current_user.is_authenticated:
-        return _redirect_after_login(current_user)
-
-    if request.method == 'POST':
-        name = request.form.get('name', '').strip()
-        email = normalize_email(request.form.get('email', ''))
-        password = request.form.get('password', '')
-        confirm_password = request.form.get('confirm_password', '')
-
-        # --- Validation ---
-        errors = []
-
-        if not name or len(name) < 2:
-            errors.append('Please enter your full name (at least 2 characters).')
-
-        if not email or '@' not in email or ' ' in email:
-            errors.append('Please enter a valid email address.')
-
-        if not password or len(password) < 8:
-            errors.append('Password must be at least 8 characters long.')
-
-        if password != confirm_password:
-            errors.append('Passwords do not match.')
-
-        if errors:
-            for error in errors:
-                flash(error, 'danger')
-            return render_template('auth/register.html',
-                                   name=name, email=email)
-
-        # --- Check if email already exists ---
-        existing_user = User.query.filter_by(email=email).first()
-        if existing_user:
-            flash('This email is already registered. Please log in instead.', 'warning')
-            return render_template('auth/register.html',
-                                   name=name, email=email)
-
-        # --- Create the student account ---
-        # ALWAYS role='student' — hardcoded, cannot be changed by user input
-        new_user = User(
-            name=name,
-            email=email,
-            password_hash=generate_password_hash(password),
-            role='student',        # ← ALWAYS student from registration
-            is_active=True,
-            theme_preference='light'
-        )
-
-        db.session.add(new_user)
-        db.session.flush()
-        fulfill_pending_assignments(new_user)
-        db.session.commit()
-
-        flash('Account created successfully! Please log in.', 'success')
-        return redirect(url_for('auth.login'))
-
-    return render_template('auth/register.html')
+    """Public self-registration is disabled; Mentor/Admin creates students."""
+    abort(404)
 
 
 @auth_bp.route('/logout')
@@ -163,7 +100,11 @@ def logout():
     logout_user()
     session.clear()
     flash('You have been logged out successfully.', 'info')
-    return redirect(url_for('auth.login'))
+    response = redirect(url_for('auth.login'), code=303)
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
+    return response
 
 
 # ----------------------------------------------------------

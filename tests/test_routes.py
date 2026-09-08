@@ -43,8 +43,8 @@ with app.test_client() as c:
         assert c.get('/login').status_code == 200
         print("✓ /login: 200 OK")
         
-        assert c.get('/register').status_code == 200
-        print("✓ /register: 200 OK")
+        assert c.get('/register').status_code == 404
+        print("✓ /register: public registration disabled")
 
         # ── Unauthenticated redirects ──
         for url in ['/home', '/courses', '/profile', '/progress', '/account', '/chat',
@@ -76,7 +76,13 @@ with app.test_client() as c:
             print(f"✓ {url}: 200 OK")
 
         # ── Logout ──
-        c.get('/logout')
+        logout_response = c.get('/logout')
+        assert logout_response.status_code == 303
+        assert logout_response.headers['Location'] == '/login'
+        assert logout_response.headers['Cache-Control'].startswith('no-store')
+        login_page = c.get('/login')
+        assert login_page.status_code == 200
+        assert b'You have been logged out successfully.' in login_page.data
         r = c.get('/mentor/dashboard')
         assert r.status_code == 302
         print("✓ After logout, /mentor/dashboard redirects again")
@@ -99,8 +105,15 @@ with app.test_client() as c:
             assert r.status_code == 403, f"Student {url} should be 403, got {r.status_code}"
             print(f"✓ Student blocked from {url}: 403 Forbidden")
 
+        student_logout = c.get('/logout')
+        assert student_logout.status_code == 303
+        assert student_logout.headers['Location'] == '/login'
+        assert student_logout.headers['Cache-Control'].startswith('no-store')
+        assert b'You have been logged out successfully.' in c.get('/login').data
+        assert '/login' in c.get('/home').headers.get('Location', '')
+        print("✓ Student one-click logout clears the session")
+
         # ── Wrong password → stays on login ──
-        c.get('/logout')
         r = c.post('/login', data={'email': admin_email, 'password': 'wrongpassword'})
         assert r.status_code == 200  # stays on login page
         print("✓ Wrong password → stays on login page (200)")
