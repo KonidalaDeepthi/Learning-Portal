@@ -5,11 +5,52 @@ from app.extensions import db
 from app.models.course import CourseEnrollment
 from app.models.pending_assignment import PendingCourseAssignment
 from app.models.user import User
+from werkzeug.security import generate_password_hash
 
 
 def normalize_email(email):
     """Return the canonical email form used by account and assignment queries."""
     return (email or '').strip().lower()
+
+
+def create_student_account(name, email, password, course):
+    """Create or repair a student account without changing an existing password."""
+    normalized_email = normalize_email(email)
+    student = User.query.filter_by(email=normalized_email).first()
+
+    if student and student.role != 'student':
+        return 'not_student', student
+
+    created = student is None
+    if created:
+        student = User(
+            name=name.strip(),
+            email=normalized_email,
+            password_hash=generate_password_hash(password),
+            role='student',
+            is_active=True,
+            theme_preference='light',
+        )
+        db.session.add(student)
+        db.session.flush()
+    else:
+        student.is_active = True
+
+    enrollment = CourseEnrollment.query.filter_by(
+        user_id=student.id,
+        course_id=course.id,
+    ).first()
+    if enrollment is None:
+        db.session.add(CourseEnrollment(user_id=student.id, course_id=course.id))
+    else:
+        enrollment.is_active = True
+
+    PendingCourseAssignment.query.filter_by(
+        email=normalized_email,
+        course_id=course.id,
+        is_active=True,
+    ).update({'is_active': False}, synchronize_session=False)
+    return 'created' if created else 'existing', student
 
 
 def assign_course_by_email(email, course, assigned_by):

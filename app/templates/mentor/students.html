@@ -11,6 +11,20 @@
 </div>
 
 <div class="card" style="margin-bottom:1.5rem;">
+  <div class="card-header"><i class="bi bi-person-plus" style="color:var(--primary)"></i> Create Student Account</div>
+  <div class="card-body">
+    <form method="POST" action="{{ url_for('mentor.create_student') }}" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+      <div style="flex:1;min-width:180px;"><label class="form-label">NAME</label><input type="text" name="name" class="form-control" required></div>
+      <div style="flex:1;min-width:220px;"><label class="form-label">EMAIL</label><input type="email" name="email" class="form-control" required></div>
+      <div style="flex:1;min-width:180px;"><label class="form-label">PASSWORD</label><input type="password" name="password" class="form-control" minlength="8" required></div>
+      <div style="flex:1;min-width:200px;"><label class="form-label">COURSE</label><select name="course_id" class="form-control" required><option value="">Select a course</option>{% for course in courses %}<option value="{{ course.id }}">{{ course.name }}</option>{% endfor %}</select></div>
+      <button type="submit" class="btn btn-primary"><i class="bi bi-person-plus"></i> Create Student</button>
+    </form>
+  </div>
+</div>
+
+<div class="card" style="margin-bottom:1.5rem;">
   <div class="card-header"><i class="bi bi-person-plus" style="color:var(--primary)"></i> Assign Course Access</div>
   <div class="card-body">
     <form method="POST" action="{{ url_for('mentor.assign_student_to_course') }}" style="display:flex;gap:0.75rem;flex-wrap:wrap;align-items:end;">

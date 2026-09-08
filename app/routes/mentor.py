@@ -105,6 +105,40 @@ def students():
                            course_filter=course_filter)
 
 
+@mentor_bp.route('/students/create', methods=['POST'])
+@login_required
+@mentor_admin_required
+def create_student():
+    from app.models.course import Course
+    from app.course_access import create_student_account, normalize_email
+
+    name = request.form.get('name', '').strip()
+    email = normalize_email(request.form.get('email', ''))
+    password = request.form.get('password', '')
+    course_id = request.form.get('course_id', type=int)
+    course = Course.query.filter_by(id=course_id, status='active').first() if course_id else None
+
+    if len(name) < 2:
+        flash('Please enter the student name.', 'danger')
+    elif not email or '@' not in email or ' ' in email:
+        flash('Please enter a valid student email.', 'danger')
+    elif len(password) < 8:
+        flash('Password must be at least 8 characters long.', 'danger')
+    elif not course:
+        flash('Please select an active course.', 'danger')
+    else:
+        result, student = create_student_account(name, email, password, course)
+        if result == 'not_student':
+            flash('This email belongs to a non-student account.', 'warning')
+        else:
+            db.session.commit()
+            message = 'Student account created.' if result == 'created' else 'Existing student updated.'
+            flash(f'{message} Active access granted to {course.name}.', 'success')
+            return redirect(url_for('mentor.student_detail', student_id=student.id))
+
+    return redirect(url_for('mentor.students'))
+
+
 @mentor_bp.route('/course-access')
 @login_required
 @mentor_admin_required
@@ -171,6 +205,24 @@ def toggle_student_active(student_id):
     db.session.commit()
     status = 'activated' if student.is_active else 'deactivated'
     flash(f'{student.name} has been {status}.', 'success')
+    return redirect(url_for('mentor.student_detail', student_id=student_id))
+
+
+@mentor_bp.route('/students/<int:student_id>/reset-password', methods=['POST'])
+@login_required
+@mentor_admin_required
+def reset_student_password(student_id):
+    from werkzeug.security import generate_password_hash
+    from app.models.user import User
+
+    student = User.query.filter_by(id=student_id, role='student').first_or_404()
+    password = request.form.get('password', '')
+    if len(password) < 8:
+        flash('Password must be at least 8 characters long.', 'danger')
+    else:
+        student.password_hash = generate_password_hash(password)
+        db.session.commit()
+        flash('Student password has been reset.', 'success')
     return redirect(url_for('mentor.student_detail', student_id=student_id))
 
 

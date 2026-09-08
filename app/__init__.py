@@ -18,6 +18,7 @@ of the app for testing, development, and production.
 """
 
 from flask import Flask, redirect, url_for
+import click
 from config import config
 from app.extensions import db, login_manager, csrf
 from sqlalchemy import inspect, text
@@ -278,59 +279,42 @@ def create_app(config_name='default'):
         db.session.commit()
         print(f'Mentor/Admin configured for {email}; role=mentor_admin; active=True')
 
-    @app.cli.command('configure-requested-enrollments')
-    def configure_requested_enrollments():
-        """Create normal student accounts and assign requested courses."""
-        from secrets import token_urlsafe
-        from werkzeug.security import generate_password_hash
-        from app.models.user import User
-        from app.models.course import Course, CourseEnrollment
+    @app.cli.command('create-student')
+    @click.option('--name', prompt='Student name')
+    @click.option('--email', prompt='Student email')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    @click.option('--course', prompt='Course name')
+    def create_student(name, email, password, course):
+        """Create or update one student and assign an active course."""
+        from app.course_access import create_student_account, normalize_email
+        from app.models.course import Course
 
-        assignments = {
-            'Python Full Stack': [
-                'vahinilekkala@gmail.com', 'ssandhya49686@gmail.com',
-                'likitha2006@gmail.com', 'chittoorpadmaja87@gmail.com',
-                'jupallisahithya@gmail.com', 'chinthakayalajayanthi6@gmail.com',
-                'madhavidasari908@gmail.com', 'nandhinianem200@gmail.com',
-                'maddikayala953@gmail.com', 'rizimarizima2@gmail.com',
-            ],
-            'Generative AI': ['yasaswinigurijala1982@gmail.com'],
-        }
-
-        temporary_passwords = {}
-        for course_name, emails in assignments.items():
-            course = Course.query.filter_by(name=course_name).first()
-            if not course:
-                raise RuntimeError(f'Required course not found: {course_name}')
-
-            for email in emails:
-                user = User.query.filter_by(email=email).first()
-                if user is None:
-                    temporary_password = token_urlsafe(12)
-                    user = User(
-                        name=email.split('@', 1)[0].replace('.', ' ').title(),
-                        email=email,
-                        password_hash=generate_password_hash(temporary_password),
-                        role='student', is_active=True, theme_preference='light',
-                    )
-                    db.session.add(user)
-                    db.session.flush()
-                    temporary_passwords[email] = temporary_password
-                elif user.role != 'student':
-                    raise RuntimeError(f'Refusing to change non-student account: {email}')
-
-                enrollment = CourseEnrollment.query.filter_by(
-                    user_id=user.id, course_id=course.id).first()
-                if enrollment is None:
-                    db.session.add(CourseEnrollment(user_id=user.id, course_id=course.id))
-                else:
-                    enrollment.is_active = True
-
+        email = normalize_email(email)
+        selected_course = Course.query.filter_by(name=course.strip(), status='active').first()
+        if not selected_course:
+            raise click.ClickException('Active course not found.')
+        result, student = create_student_account(name, email, password, selected_course)
+        if result == 'not_student':
+            raise click.ClickException('The email belongs to a non-student account.')
         db.session.commit()
-        print('Requested course enrollments configured successfully.')
-        if temporary_passwords:
-            print('Temporary passwords for newly created student accounts:')
-            for email, password in temporary_passwords.items():
-                print(f'  {email}: {password}')
+        click.echo(f'Student {email} is ready with active access to {selected_course.name}.')
+
+    @app.cli.command('reset-student-password')
+    @click.option('--email', prompt='Student email')
+    @click.option('--password', prompt=True, hide_input=True, confirmation_prompt=True)
+    def reset_student_password(email, password):
+        """Explicitly reset an existing student's password."""
+        from werkzeug.security import generate_password_hash
+        from app.course_access import normalize_email
+        from app.models.user import User
+
+        student = User.query.filter_by(
+            email=normalize_email(email), role='student').first()
+        if not student:
+            raise click.ClickException('Student account not found.')
+        student.password_hash = generate_password_hash(password)
+        student.is_active = True
+        db.session.commit()
+        click.echo(f'Password reset for {student.email}.')
 
     return app
